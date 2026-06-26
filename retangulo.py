@@ -7,7 +7,6 @@ def main():
     global canvas, cor_contorno_var, cor_preenchimento_var
 
     root = tk.Tk()
-    root.title("Mini Paint - Foco no Retângulo")
     frame = tk.Frame(root)
     paddings = {'padx': 5, 'pady': 5}
 
