@@ -1,33 +1,50 @@
-import tkinter as tk
+import tkinter
 from tkinter import ttk
 
+def iniciar_figura_nova(event):
+    global figura_nova
 
-figuras = []        
+    if tipo_figura_var.get() == "Retângulo":
+        figura_nova = [event.x, event.y, event.x, event.y]
+        
+def atualizar_figura_nova(event):
+    global figura_nova
+
+    if tipo_figura_var.get() == "Retângulo":
+        if figura_nova:
+            canvas.delete("temporário")
+            figura_nova[2] = event.x
+            figura_nova[3] = event.y
+            canvas.create_rectangle(figura_nova[0], figura_nova[1], figura_nova[2], figura_nova[3], tags = "temporário")
+
+def finalizar_figura(event):
+    global figura_nova
+
+    if tipo_figura_var.get() == "Retângulo":
+        if figura_nova:
+            canvas.itemconfig("temporário", tags = "figura")
+            figuras.append(figura_nova)
+            figura_nova = None
+
 def main():
-    global canvas, cor_contorno_var, cor_preenchimento_var
-
-    root = tk.Tk()
-    frame = tk.Frame(root)
-    paddings = {'padx': 5, 'pady': 5}
-
+    global canvas, tipo_figura_var
     
-    ttk.Label(frame, text='Contorno:').grid(column=0, row=0, sticky=tk.W, **paddings)
-    cor_contorno_var = tk.StringVar(root)
-    ttk.OptionMenu(frame, cor_contorno_var, 'black', 'black', 'red', 'blue', 'green').grid(column=1, row=0, **paddings)
+    painel = tkinter.Tk()
+    frame = tkinter.Frame(painel)
+    canvas = tkinter.Canvas(frame, background = "white", width = 600, height = 600)
+    canvas.grid(column = 0, row = 1, columnspan = 2, sticky = tkinter.W)
+    tipo_figura_var = tkinter.StringVar(painel)
+    menu_de_opcoes = ttk.OptionMenu(frame, tipo_figura_var, "Retângulo", "Retângulo")
+    menu_de_opcoes.grid(column = 1, row = 0, sticky = tkinter.W)
 
-    
-    ttk.Label(frame, text='Preenchimento:').grid(column=2, row=0, sticky=tk.W, **paddings)
-    cor_preenchimento_var = tk.StringVar(root)
-    ttk.OptionMenu(frame, cor_preenchimento_var, 'Nenhum', 'Nenhum', 'yellow', 'red', 'blue', 'green').grid(column=3, row=0, **paddings)
+    canvas.bind("<Button-1>", iniciar_figura_nova)
+    canvas.bind("<B1-Motion>", atualizar_figura_nova)
+    canvas.bind("<ButtonRelease-1>", finalizar_figura)
 
-    
-    canvas = tk.Canvas(frame, bg='white', width=600, height=600)
-    canvas.grid(column=0, row=1, columnspan=4, sticky=tk.W, **paddings)
     frame.pack()
+    painel.mainloop()
 
-    
+figuras = []
+figura_nova = None
 
-    root.mainloop()
-
-if __name__ == "__main__":
-    main()
+main()
