@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser
 
-class Figura:
+class Figura: # Classe pai
     def __init__(self, x1, y1, x2, y2, cor_borda, cor_preenchimento):
         self.x1 = x1
         self.y1 = y1
