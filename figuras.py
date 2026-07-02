@@ -17,7 +17,48 @@ class Figura:
     
 # Criação da classe Linha. A classe Linha recebe como argumento "Figura" porque ela é uma subclasse de figura.
 class Linha(Figura):
-    # Definindo o método de contrução de uma figura via contrutor da classe Figura. 
+    # Definindo o método de contrução de uma figura via classe Figura. 
     def desenhar(self, canvas, tags=""):
-        # Criação da linha por meio de um método do tkinter. Repare que na crição da linha a cor da borda não importa.
-        return canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill= self.cor_borda, tags=tags)
+        # Criação da linha por meio de um método do tkinter. Repare que na crição da linha a cor do preenchimento não importa.
+        return canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill=self.cor_borda, tags=tags)
+    
+# Criação da classe Retangulo. E como é subclasse de Figura recebe como argumento Figura.
+class Retangulo(Figura):
+   # Definindo o método de contrução de uma figura via classe Figura.
+   def desenhar(self, canvas, tags=""):
+       # Criação do retângulo por meio de um método nativo do tkinter.
+       return canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+
+# Criação da classe Oval.
+class Oval(Figura):
+    # Implementação do método desenhar da classe Figura.
+    def desenhar(self, canvas, tags=""):
+        # Criação do oval por meio de um método nativo do tkinter
+        return canvas.create_oval(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+    
+# Criação da classe polígono.
+class Poligono(Figura):
+    # Diferente das figuras o polígono precisa de vários pontos para ser criado. Como o contrutor é limitado a apenas 4 coordenadas, vamos precisar criar um crontutor exclusivo para essa figura. Nesse novo construtor ao invés de colocarmos pontos em variáveis únicas, vamos colocá-los em uma lista.
+    def __init__(self, coordenadas, cor_borda, cor_preenchimento):
+        self.coordenadas = coordenadas
+        self.cor_borda = cor_borda
+        self.cor_preenchimento = cor_preenchimento
+
+    # Implementação do método desenhar da classe Figura.
+    def desenhar(self, canvas, tags=""):
+        # Criação do polígono por meio de um método nativo do tkinter
+        return canvas.create_polygon(self.coordenadas, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+    
+    # Criação da classe MaoLivre.
+class MaoLivre(Figura):
+    # Sobrescrevendo o construtor, pois também precisamos de uma lista de coordenadas. E como não tem preenchimento,  não vamos colocar como parâmetro.
+    def __init__(self, coordenadas, cor_borda):
+        self.coordenadas = coordenadas
+        self.cor_borda = cor_borda
+
+    # Definindo o método de desenho por meio da classe Figura.
+    def desenhar(self, canvas, tags=""):
+        # Um desenho qualque tipo um rabisco é meio que uma fusão entre linhas e polígonos. São linhas que começam e terminam no mesmo ponto ao decorrer do movimento do mouse. E também não precisa de cor de preenchimento.
+        return canvas.create_line(self.coordenadas, fill=self.cor_borda, tags=tags)
+
+
