@@ -68,27 +68,37 @@ class MiniPaint:
     def inicia_desenho(self, event):
         self.inicio_x = event.x
         self.inicio_y = event.y
-
-        ClasseFigura = self.classes_figuras[self.ferramenta_atual]
-        self.figura_atual = ClasseFigura(self.inicio_x, self.inicio_y, event.x, event.y, 
-                                         self.cor_borda, self.cor_preenchimento)
+        self.coordenadas_atuais = [event.x, event.y]
+        self.figura_atual = None
 
     def atualiza_desenho(self, event):
         self.canvas.delete("temporario")
-
-        #usa o método de adicionar pontos para rabiscos
-        if self.ferramenta_atual == "Mão livre":
-            self.figura_atual.adicionar_ponto(event.x, event.y)
-        #se for outra figura só muda as coordenadas finais
-        else:
-            self.figura_atual.x2 = event.x
-            self.figura_atual.y2 = event.y
         
-        #Desenho da figura de forma autonoma
-        self.figura_atual.desenhar(self.canvas, tags="temporario")
+        ferramenta = self.ferramenta_atual
+
+        # Formas de múltiplos pontos
+        if ferramenta in ["Polígono", "Mão livre"]:
+            self.coordenadas_atuais.extend([event.x, event.y])
+            
+            if ferramenta == "Polígono":
+                self.figura_atual = Poligono(self.coordenadas_atuais, self.cor_borda, self.cor_preenchimento)
+            else:
+                self.figura_atual = MaoLivre(self.coordenadas_atuais, self.cor_borda)
+                
+        # Formas de 2 pontos (Linha, Retângulo, Oval)
+        else:
+            ClasseFigura = self.classes_figuras[ferramenta]
+            self.figura_atual = ClasseFigura(
+                self.inicio_x, self.inicio_y, event.x, event.y, 
+                self.cor_borda, self.cor_preenchimento
+            )
+
+        if self.figura_atual:
+            self.figura_atual.desenhar(self.canvas, tags="temporario")
 
     def finaliza_desenho(self, event):
         self.canvas.dtag("temporario", "temporario")
+        self.figura_atual = None
 
 # Inicialização do programa
 if __name__ == "__main__":
