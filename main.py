@@ -10,7 +10,7 @@ class MiniPaint:
         self.root.title("Mini Paint")
 
         # Figura que começa
-        self.ferramenta_atual = "linha"
+        self.ferramenta_atual = "Linha"
         self.cor_borda = "black"
         self.cor_preenchimento = ""
 
@@ -19,36 +19,28 @@ class MiniPaint:
         self.inicio_y = None
 
         # Meio que um dicionário de classes 
-        self.classes_figuras = {"Linha": Linha, "Oval": Oval, "Retângulo": Retangulo,  }
+        self.classes_figuras = {"Linha": Linha, "Oval": Oval, "Retângulo": Retangulo, "Polígono": Poligono, "Mão livre": MaoLivre}
 
         # Criação do painel
         self.painel = tk.Frame(self.root)
         self.painel.pack(pady=5)
 
         # Criação do botao para escolher a borda
-        self.btn_borda = tk.Button(self.painel, text="Cor Borda", command=self.escolher_borda)
-        self.btn_borda.pack(side=tk.LEFT, padx=5)
-
-        # Criação do botao para escolher a cor de preenchimento
-        self.btn_fundo = tk.Button(self.painel, text="Cor Preenchimento", command=self.escolher_preenchimento)
-        self.btn_fundo.pack(side=tk.LEFT, padx=5)
-
-        # Botões para mudar de ferramenta (término com as classes das figuras feitas)
+   
+        tk.Label(self.painel, text="Ferramenta:").grid(row=0, column=0, padx=5, pady=5)
         
-        self.btn_lin = tk.Button(self.painel, text="Linha", command=lambda: self.mudar_ferramenta("Linha"))
-        self.btn_lin.pack(side=tk.LEFT, padx=5)
-
-        self.btn_ret = tk.Button(self.painel, text="Retângulo", command=lambda: self.mudar_ferramenta("Retângulo"))
-        self.btn_ret.pack(side=tk.LEFT, padx=5)
+        self.cb_ferramenta = ttk.Combobox(self.painel, values=["Linha", "Retângulo", "Oval", "Polígono", "Mão livre"], state="readonly")
+        self.cb_ferramenta.set("Linha") 
+        self.cb_ferramenta.grid(row=0, column=1, padx=5, pady=5)
         
-        self.btn_ova = tk.Button(self.painel, text="Oval", command=lambda: self.mudar_ferramenta("Oval"))
-        self.btn_ova.pack(side=tk.LEFT, padx=5)
+        self.cb_ferramenta.bind("<<ComboboxSelected>>", lambda e: self.mudar_ferramenta(self.cb_ferramenta.get()))
 
-        self.btn_pol = tk.Button(self.painel, text="Polígono", command=lambda: self.mudar_ferramenta("Polígono"))
-        self.btn_pol.pack(side=tk.LEFT, padx=5)
+        self.btn_borda = ttk.Button(self.painel, text="Cor da Borda", command=self.escolher_borda)
+        self.btn_borda.grid(row=0, column=2, padx=5, pady=5)
 
-        self.btn_mao = tk.Button(self.painel, text="Mão livre", command=lambda: self.mudar_ferramenta("Mão livre"))
-        self.btn_mao.pack(side=tk.LEFT, padx=5)
+        self.btn_fundo = ttk.Button(self.painel, text="Cor do Fundo", command=self.escolher_preenchimento)
+        self.btn_fundo.grid(row=0, column=3, padx=5, pady=5)
+        
 
 
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)
