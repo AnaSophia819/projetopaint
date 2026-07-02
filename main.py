@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import colorchooser
+from tkinter import ttk, colorchooser
 from figuras import Linha, Retangulo, Oval, Poligono, MaoLivre
 
 class MiniPaint:
