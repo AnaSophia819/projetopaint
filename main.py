@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import colorchooser
-from figuras import Linha, Oval
+from figuras import Linha, Oval, Retangulo, Poligono, MaoLivre
 
 class MiniPaint:
 
@@ -11,7 +11,7 @@ class MiniPaint:
 
         # Figura que começa
         self.ferramenta_atual = "linha"
-        self.cor_bordda = "black"
+        self.cor_borda = "black"
         self.cor_preenchimento = ""
 
         # Coordenadas iniciais
@@ -19,7 +19,7 @@ class MiniPaint:
         self.in_y = None
 
         # Meio que um dicionário de classes 
-        self.classes_figuras = {"linha": Linha, "oval": Oval, "retângulo": Retangulo,  }
+        self.classes_figuras = {"Linha": Linha, "Retângulo": Retangulo, "Oval": Oval, "Polígono": Poligono, "Mão livre": MaoLivre}
 
         # Criação do painel
         self.painel = tk.Frame(self.root)
@@ -34,11 +34,21 @@ class MiniPaint:
         self.btn_fundo.pack(side=tk.LEFT, padx=5)
 
         # Botões para mudar de ferramenta (término com as classes das figuras feitas)
-        self.btn_ret = tk.Button(self.painel, text="Retângulo", command=lambda: self.mudar_ferramenta("retangulo"))
+        
+        self.btn_lin = tk.Button(self.painel, text="Linha", command=lambda: self.mudar_ferramenta("Linha"))
+        self.btn_lin.pack(side=tk.LEFT, padx=5)
+
+        self.btn_ret = tk.Button(self.painel, text="Retângulo", command=lambda: self.mudar_ferramenta("Retângulo"))
         self.btn_ret.pack(side=tk.LEFT, padx=5)
         
-        self.btn_ova = tk.Button(self.painel, text="Oval", command=lambda: self.mudar_ferramenta("oval"))
+        self.btn_ova = tk.Button(self.painel, text="Oval", command=lambda: self.mudar_ferramenta("Oval"))
         self.btn_ova.pack(side=tk.LEFT, padx=5)
+
+        self.btn_pol = tk.Button(self.painel, text="Polígono", command=lambda: self.mudar_ferramenta("Polígono"))
+        self.btn_pol.pack(side=tk.LEFT, padx=5)
+
+        self.btn_mao = tk.Button(self.painel, text="Mão livre", command=lambda: self.mudar_ferramenta("Mão livre"))
+        self.btn_mao.pack(side=tk.LEFT, padx=5)
 
 
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)
