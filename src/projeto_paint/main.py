@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import colorchooser
-from figuras import Linha, Oval
+from src.projeto_paint.modelo.figuras import Linha, Oval
 
 class MiniPaint:
 
