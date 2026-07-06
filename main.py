@@ -51,6 +51,8 @@ class MiniPaint:
         self.canvas.bind('<ButtonPress-1>', self.inicia_desenho)
         self.canvas.bind('<B1-Motion>', self.atualiza_desenho)
         self.canvas.bind('<ButtonRelease-1>', self.finaliza_desenho)
+        self.canvas.bind('<ButtonPress-3>', self.encerra_poligono) # Botão direito do mouse
+        self.pontos_poligono = []
 
     # Métodos de Cor e Ferramenta
     def escolher_borda(self):
@@ -63,29 +65,34 @@ class MiniPaint:
 
     def mudar_ferramenta(self, ferramenta):
         self.ferramenta_atual = ferramenta
+        self.encerra_poligono()
 
     #Lógica de Eventos do Mouse
     def inicia_desenho(self, event):
         self.inicio_x = event.x
         self.inicio_y = event.y
-        self.coordenadas_atuais = [event.x, event.y]
         self.figura_atual = None
 
+        if self.ferramenta_atual == "Polígono":
+            self.pontos_poligono.extend([event.x, event.y])
+            self.canvas.delete("temporario")
+            
+            if len(self.pontos_poligono) >= 4:
+                self.figura_atual = Poligono(self.pontos_poligono, self.cor_borda, self.cor_preenchimento)
+                self.figura_atual.desenhar(self.canvas, tags="temporario")
+        else:
+            self.coordenadas_atuais = [event.x, event.y]
+
     def atualiza_desenho(self, event):
+        if self.ferramenta_atual == "Polígono":
+            return
+
         self.canvas.delete("temporario")
-        
         ferramenta = self.ferramenta_atual
 
-        # Formas de múltiplos pontos
-        if ferramenta in ["Polígono", "Mão livre"]:
+        if ferramenta == "Mão livre":
             self.coordenadas_atuais.extend([event.x, event.y])
-            
-            if ferramenta == "Polígono":
-                self.figura_atual = Poligono(self.coordenadas_atuais, self.cor_borda, self.cor_preenchimento)
-            else:
-                self.figura_atual = MaoLivre(self.coordenadas_atuais, self.cor_borda)
-                
-        # Formas de 2 pontos (Linha, Retângulo, Oval)
+            self.figura_atual = MaoLivre(self.coordenadas_atuais, self.cor_borda)
         else:
             ClasseFigura = self.classes_figuras[ferramenta]
             self.figura_atual = ClasseFigura(
@@ -97,8 +104,15 @@ class MiniPaint:
             self.figura_atual.desenhar(self.canvas, tags="temporario")
 
     def finaliza_desenho(self, event):
-        self.canvas.dtag("temporario", "temporario")
-        self.figura_atual = None
+        if self.ferramenta_atual != "Polígono":
+            self.canvas.dtag("temporario", "temporario")
+            self.figura_atual = None
+
+    def encerra_poligono(self, event=None):
+        if self.pontos_poligono:
+            self.canvas.dtag("temporario", "temporario")
+            self.pontos_poligono = []
+            self.figura_atual = None
 
 # Inicialização do programa
 if __name__ == "__main__":
