@@ -43,7 +43,7 @@ class ControladorPaint:
             self.pontos_poligono.extend([event.x, event.y])
             self.visao_interface.canvas.delete("temporario")
             
-            if len(self.pontos_poligono) >= 4:
+            if len(self.pontos_poligono) >= 6:
                 self.figura_atual = Poligono(self.pontos_poligono, self.cor_borda, self.cor_preenchimento)
                 self.visao_interface.renderizar_figura(self.figura_atual)
         else:
@@ -67,19 +67,19 @@ class ControladorPaint:
             )
 
         if self.figura_atual:
-            self.visao_interface.renderizar_figura(self.figura_atual)
+            self.figura_atual.desenhar(self.visao_interface.canvas, tags="temporario")
 
     def finaliza_desenho(self, event):
         if self.ferramenta_atual != "Polígono":
             self.visao_interface.canvas.dtag("temporario", "figura_definitiva")
             if self.figura_atual:
-                self.modelo_desenho.adicionar_figura(self.figura_atual)
+                self.modelo_desenho.adicionar_figuras(self.figura_atual)
             self.figura_atual = None
 
     def encerra_poligono(self, event=None):
         if self.pontos_poligono:
             self.visao_interface.canvas.dtag("temporario", "figura_definitiva")
             if self.figura_atual:
-                self.modelo_desenho.adicionar_figura(self.figura_atual)
+                self.modelo_desenho.adicionar_figuras(self.figura_atual)
             self.pontos_poligono = []
             self.figura_atual = None
