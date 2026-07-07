@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import ttk, colorchooser
+from modelo.figuras import Linha, Retangulo, Oval, Poligono, MaoLivre
 
 #responsavel por toda a parte visual do paint (cria a tela, botões). Repassa o que o usuario escolheu  para o controlador
 class Interface:
@@ -18,9 +20,9 @@ class Interface:
     #aqui serve para passar a informação para o controlador do que o usuario escolheu
         self.cb_ferramenta.bind("<<ComboboxSelected>>", lambda e: self.controlador.mudar_ferramenta(self.cb_ferramenta.get()))
     #botões de cores (avisam o controlador quando clicados)
-        self.btn_borda = ttk.Button(self.painel, text="Cor da Borda", command=self.controlador.escolher_borda)
+        self.btn_borda = ttk.Button(self.painel, text="Cor da Borda", command=self.escolher_borda)
         self.btn_borda.grid(row=0, column=2, padx=5, pady=5)
-        self.btn_fundo = ttk.Button(self.painel, text="Cor do Fundo", command=self.controlador.escolher_preenchimento)
+        self.btn_fundo = ttk.Button(self.painel, text="Cor do Fundo", command=self.escolher_preenchimento)
         self.btn_fundo.grid(row=0, column=3, padx=5, pady=5)
     #A tela que o usuario vai utilizar para desenhar
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)
@@ -31,5 +33,24 @@ class Interface:
         self.canvas.bind('<ButtonPress-3>', self.controlador.encerra_poligono) #botão direito do mouse
 
 #metodo que liga o controlador e o canvas
-    def obter_canvas(self):
-        return self.canvas
+    # Abre a janela de cor e manda o resultado pro controlador
+    def escolher_borda(self):
+        cor = colorchooser.askcolor(title="Cor da Borda")[1]
+        if cor: self.controlador.atualizar_cor_borda(cor)
+
+    def escolher_preenchimento(self):
+        cor = colorchooser.askcolor(title="Cor do Preenchimento")[1]
+        if cor: self.controlador.atualizar_cor_preenchimento(cor)
+
+    # O Método que pega a "casca vazia" do Modelo e joga na tela (O Controlador pede isso)
+    def renderizar_figura(self, figura, tag="temporario"):
+        if isinstance(figura, Linha):
+            self.canvas.create_line(figura.x1, figura.y1, figura.x2, figura.y2, fill=figura.cor_borda, tags=tag)
+        elif isinstance(figura, Retangulo):
+            self.canvas.create_rectangle(figura.x1, figura.y1, figura.x2, figura.y2, outline=figura.cor_borda, fill=figura.cor_preenchimento, tags=tag)
+        elif isinstance(figura, Oval):
+            self.canvas.create_oval(figura.x1, figura.y1, figura.x2, figura.y2, outline=figura.cor_borda, fill=figura.cor_preenchimento, tags=tag)
+        elif isinstance(figura, Poligono):
+            self.canvas.create_polygon(figura.coordenadas, outline=figura.cor_borda, fill=figura.cor_preenchimento, tags=tag)
+        elif isinstance(figura, MaoLivre):
+            self.canvas.create_line(figura.coordenadas, fill=figura.cor_borda, tags=tag)

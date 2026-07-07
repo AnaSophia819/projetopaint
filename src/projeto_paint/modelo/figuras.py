@@ -20,6 +20,18 @@ class Retangulo(Figura):
 class Oval(Figura):
     pass
 
+# Formas complexas que usam listas de coordenadas
+class Poligono(Figura):
+    def __init__(self, coordenadas, cor_borda, cor_preenchimento):
+        self.coordenadas = coordenadas
+        self.cor_borda = cor_borda
+        self.cor_preenchimento = cor_preenchimento
+
+class MaoLivre(Figura):
+    def __init__(self, coordenadas, cor_borda):
+        self.coordenadas = coordenadas
+        self.cor_borda = cor_borda
+        self.cor_preenchimento = ""
 
 # Classe que o professor pediu para armazenar a lista de desenhos feitos
 class Desenho:
