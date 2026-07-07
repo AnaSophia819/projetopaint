@@ -45,7 +45,7 @@ class ControladorPaint:
             
             if len(self.pontos_poligono) >= 6:
                 self.figura_atual = Poligono(self.pontos_poligono, self.cor_borda, self.cor_preenchimento)
-                self.figura_atual.desenhar(self.figura_atual)
+                self.figura_atual.desenhar(self.visao_interface.canvas, tags="temporario")
         else:
             self.coordenadas_atuais = [event.x, event.y]
 
