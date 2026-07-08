@@ -1,5 +1,5 @@
 import unittest
-from modelo.figuras import Retangulo, Desenho
+from figuras import Retangulo, Desenh
 
 class TestModelo(unittest.TestCase):
 
