@@ -1,6 +1,5 @@
 from modelo.figuras import Desenho, Linha, Retangulo, Oval, Poligono, MaoLivre
 
-
 class EstadoFerramenta:
     def __init__(self, ctrl): self.ctrl = ctrl
     def inicia(self, event): pass
@@ -36,8 +35,7 @@ class EstadoForma2Pontos(EstadoFerramenta):
 # Controla o traço contínuo e as direções 
 class EstadoMaoLivre(EstadoFerramenta):
     def inicia(self, e):
-        
-        self.ctrl.coordenad as_atuais = [e.x, e.y]
+        self.ctrl.coordenadas_atuais = [e.x, e.y]
         self.ctrl.figura_atual = None
 
     def atualiza(self, e):
@@ -94,7 +92,7 @@ class ControladorPaint:
         # Fecha polígonos abertos antes de trocar de ferramenta
         self.estado_atual.encerra()
         
-               mapa_estados = {
+        mapa_estados = {
             "Linha": EstadoForma2Pontos(self, Linha),
             "Retângulo": EstadoForma2Pontos(self, Retangulo),
             "Oval": EstadoForma2Pontos(self, Oval),
