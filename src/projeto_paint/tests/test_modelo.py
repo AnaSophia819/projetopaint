@@ -1,37 +1,37 @@
 import unittest
-import os
 from modelo.figuras import Retangulo, Desenho
 
-class TestModeloPaint(unittest.TestCase):
+class TestModelo(unittest.TestCase):
 
-    def test_geometria_e_serializacao(self):
-        # Testa a criação e o round-trip (Figura -> Dicionário -> Figura) de uma vez só
-        ret = Retangulo(10, 10, 50, 50, "black", "blue")
-        self.assertEqual(ret.x1, 10) # Garante que guardou a coordenada
-        
-        dicionario = ret.para_dicionario()
-        ret_novo = Retangulo.de_dicionario(dicionario)
-        
-        self.assertEqual(ret_novo.cor_preenchimento, "blue")
-        self.assertIsInstance(ret_novo, Retangulo)
+    def test_criar_figura(self):
+        # testae pra ver se guarda as coordenadas
+        ret = Retangulo(10, 20, 100, 200, "black", "blue")
+        self.assertEqual(ret.x1, 10)
+        self.assertEqual(ret.y2, 200)
 
-    def test_ciclo_salvar_abrir(self):
-        # Testa criar um desenho, salvar no HD e abrir de novo
-        desenho = Desenho()
-        desenho.adicionar_figuras(Retangulo(0, 0, 10, 10, "red", ""))
+    def test_dicionario(self):
+        # testando o round-trip
+        ret = Retangulo(0, 0, 50, 50, "red", "")
+        dic = ret.para_dicionario()
         
-        caminho = "teste.json"
-        desenho.salvar_json(caminho)
+        self.assertEqual(dic["tipo"], "Retangulo")
         
-        novo_desenho = Desenho()
-        novo_desenho.abrir_json(caminho)
+        novo_ret = Retangulo.de_dicionario(dic)
+        self.assertEqual(novo_ret.cor_borda, "red")
+        self.assertEqual(novo_ret.x2, 50)
+
+    def test_json(self):
+        # tester para salvar e abrir
+        desenho1 = Desenho()
+        desenho1.adicionar_figuras(Retangulo(10, 10, 20, 20, "blue", "blue"))
         
-        self.assertEqual(len(novo_desenho.figuras), 1)
-        self.assertIsInstance(novo_desenho.figuras[0], Retangulo)
+        desenho1.salvar_json("teste_desenho.json")
         
-        # Limpa o arquivo de teste no final
-        if os.path.exists(caminho):
-            os.remove(caminho)
+        desenho2 = Desenho()
+        desenho2.abrir_json("teste_desenho.json")
+        
+        # verifica se carregou
+        self.assertEqual(len(desenho2.figuras), 1)
 
 if __name__ == '__main__':
     unittest.main()
