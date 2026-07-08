@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, colorchooser, filedialog, messagebox 
 from modelo.figuras import Linha, Retangulo, Oval, Poligono, MaoLivre
 
-# responsavel por toda a parte visual do paint (cria a tela, botões). Repassa o que o usuario escolheu  para o controlador
+# responsavel por toda a parte visual do paint (cria a tela, botões). e repassa o que o usuario escolheu 
 class Interface:
     def __init__(self, root, controlador):
         self.root = root
@@ -27,9 +27,8 @@ class Interface:
         self.btn_fundo = ttk.Button(self.painel, text="Cor do Fundo", command=self.escolher_preenchimento)
         self.btn_fundo.grid(row=0, column=3, padx=5, pady=5)
 
-        # ==========================================
-        # NOVOS BOTÕES: SALVAR E ABRIR
-        # ==========================================
+        # BOTÕES PARA SALVAR E ABRIR
+        
         self.btn_salvar = ttk.Button(self.painel, text="Salvar", command=self.acao_salvar)
         self.btn_salvar.grid(row=0, column=4, padx=5, pady=5)
         
@@ -42,9 +41,9 @@ class Interface:
         self.canvas.bind('<ButtonPress-1>', self.controlador.inicia_desenho) # as ações do mouse na tela e passa as informções para o controlador
         self.canvas.bind('<B1-Motion>', self.controlador.atualiza_desenho)
         self.canvas.bind('<ButtonRelease-1>', self.controlador.finaliza_desenho)
-        self.canvas.bind('<ButtonPress-3>', self.controlador.encerra_poligono) # botão direito do mouse
+        self.canvas.bind('<ButtonPress-3>', self.controlador.encerra_poligono) 
 
-    # metodo que liga o controlador e o canvas
+  
     # Abre a janela de cor e manda o resultado pro controlador
     def escolher_borda(self):
         cor = colorchooser.askcolor(title="Cor da Borda")[1]
@@ -81,15 +80,19 @@ class Interface:
         )
         if caminho:
             try:
-                # 1. Pede pro Modelo ler o arquivo e recriar os objetos
+                #  Pede pro Modelo ler o arquivo e recriar os objetos
                 self.controlador.modelo_desenho.abrir_json(caminho)
                 
                 self.canvas.delete("all") 
                 
-                # 3. Manda cada figura que foi recarregada se desenhar de novo na tela
+                #  Manda cada figura que foi recarregada se desenhar de novo na tela
                 for figura in self.controlador.modelo_desenho.figuras:
                     figura.desenhar(self.canvas, tags="figura_definitiva")
                     
                 messagebox.showinfo("Sucesso", "Desenho carregado com sucesso!")
             except Exception as e:
                 messagebox.showerror("Erro", f"Falha ao abrir: {e}")
+
+
+
+
