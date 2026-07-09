@@ -2,11 +2,11 @@ import unittest
 import os
 import sys
 
-# Esse bloco garante que o teste ache o arquivo 'figuras.py' na raiz,
-# mesmo estando dentro da pasta 'tests' lá no Git
+# Esse bloco garante que o teste ache o arquivo figuras.py na raiz.
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from figuras import Retangulo, Desenho  # Correção do 'Desenho' aqui!
+from figuras import Retangulo, Desenho  # Correção do 'Desenho' 
 
 class TestModelo(unittest.TestCase):
 
