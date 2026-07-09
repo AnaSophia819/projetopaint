@@ -2,13 +2,13 @@ import tkinter as tk
 from tkinter import ttk, colorchooser, filedialog, messagebox 
 from modelo.figuras import Linha, Retangulo, Oval, Poligono, MaoLivre
 
-# responsavel por toda a parte visual do paint (cria a tela, botões). e repassa o que o usuario escolheu 
+# responsavel por toda a parte visual do paint cria a tela, botões. e repassa o que o usuario escolheu 
 class Interface:
     def __init__(self, root, controlador):
         self.root = root
         self.root.title("Mini Paint")
         self.controlador = controlador
-        self.painel = tk.Frame(self.root)  # painel
+        self.painel = tk.Frame(self.root)  
         self.painel.pack(pady=5)
         tk.Label(self.painel, text="Ferramenta:").grid(row=0, column=0, padx=5, pady=5)
 
@@ -20,7 +20,7 @@ class Interface:
         # aqui serve para passar a informação para o controlador do que o usuario escolheu
         self.cb_ferramenta.bind("<<ComboboxSelected>>", lambda e: self.controlador.mudar_ferramenta(self.cb_ferramenta.get()))
         
-        # botões de cores (avisam o controlador quando clicados)
+        # botões de cores avisa o controlador quando clicados
         self.btn_borda = ttk.Button(self.painel, text="Cor da Borda", command=self.escolher_borda)
         self.btn_borda.grid(row=0, column=2, padx=5, pady=5)
         
@@ -38,7 +38,7 @@ class Interface:
         # A tela que o usuario vai utilizar para desenhar
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)
         self.canvas.pack()
-        self.canvas.bind('<ButtonPress-1>', self.controlador.inicia_desenho) # as ações do mouse na tela e passa as informções para o controlador
+        self.canvas.bind('<ButtonPress-1>', self.controlador.inicia_desenho) 
         self.canvas.bind('<B1-Motion>', self.controlador.atualiza_desenho)
         self.canvas.bind('<ButtonRelease-1>', self.controlador.finaliza_desenho)
         self.canvas.bind('<ButtonPress-3>', self.controlador.encerra_poligono) 
@@ -57,7 +57,7 @@ class Interface:
     #  COMUNICAÇÃO DO JSON COM A TELA
    
     def acao_salvar(self):
-        # Abre a janela pedindo pro usuário escolher a pasta e o nome do arquivo
+        # Abre uma janela pedindo pro usuário escolher a pasta e o nome do arquivo
         caminho = filedialog.asksaveasfilename(
             defaultextension=".json",
             filetypes=[("Arquivos JSON", "*.json"), ("Todos os Arquivos", "*.*")],
@@ -65,7 +65,7 @@ class Interface:
         )
         if caminho:
             try:
-                # Se ele não cancelar, manda o Modelo salvar
+                # Se ele não cancelar, manda salvar o modelo 
                 self.controlador.modelo_desenho.salvar_json(caminho)
                 messagebox.showinfo("Sucesso", "Desenho salvo com sucesso!")
             except Exception as e:
