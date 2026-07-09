@@ -89,7 +89,7 @@ class Desenho:
         # Transforma todas as figuras da lista em dicionários
         lista_dicionarios = [fig.para_dicionario() for fig in self.figuras]
         
-        # Escreve o arquivo no disco
+        # coloca o arquivo no disco
         with open(caminho_arquivo, 'w', encoding='utf-8') as f:
             json.dump(lista_dicionarios, f, indent=4)
 
@@ -111,6 +111,6 @@ class Desenho:
         
         for dados in lista_dicionarios:
             tipo_figura = dados["tipo"]
-            ClasseCerta = mapa_classes[tipo_figura] # Pega a classe correta
+            ClasseCerta = mapa_classes[tipo_figura] 
             nova_figura = ClasseCerta.de_dicionario(dados) # Manda a própria classe se reconstruir
             self.adicionar_figuras(nova_figura)
