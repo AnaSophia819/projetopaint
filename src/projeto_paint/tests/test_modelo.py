@@ -1,10 +1,17 @@
 import unittest
-from figuras import Retangulo, Desenh
+import os
+import sys
+
+# Esse bloco garante que o teste ache o arquivo 'figuras.py' na raiz,
+# mesmo estando dentro da pasta 'tests' lá no Git
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from figuras import Retangulo, Desenho  # Correção do 'Desenho' aqui!
 
 class TestModelo(unittest.TestCase):
 
     def test_criar_figura(self):
-        # testae pra ver se guarda as coordenadas
+        # testa para ver se guarda as coordenadas
         ret = Retangulo(10, 20, 100, 200, "black", "blue")
         self.assertEqual(ret.x1, 10)
         self.assertEqual(ret.y2, 200)
@@ -21,17 +28,22 @@ class TestModelo(unittest.TestCase):
         self.assertEqual(novo_ret.x2, 50)
 
     def test_json(self):
-        # tester para salvar e abrir
+        # teste para salvar e abrir
         desenho1 = Desenho()
         desenho1.adicionar_figuras(Retangulo(10, 10, 20, 20, "blue", "blue"))
         
-        desenho1.salvar_json("teste_desenho.json")
+        nome_arquivo = "teste_desenho.json"
+        desenho1.salvar_json(nome_arquivo)
         
         desenho2 = Desenho()
-        desenho2.abrir_json("teste_desenho.json")
+        desenho2.abrir_json(nome_arquivo)
         
         # verifica se carregou
         self.assertEqual(len(desenho2.figuras), 1)
+        
+        # limpa o arquivo temporário
+        if os.path.exists(nome_arquivo):
+            os.remove(nome_arquivo)
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
