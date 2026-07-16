@@ -1,7 +1,7 @@
 import json # Importa a biblioteca nativa do Python para JSON
 
 class Figura:
-    # Aqui é  para  ser inicializado automaticamente
+    # Aqui é  para   iniciar automaticamente
     def __init__(self, x1, y1, x2, y2, cor_borda, cor_preenchimento):
         self.x1 = x1    
         self.y1 = y1
@@ -9,6 +9,18 @@ class Figura:
         self.y2 = y2
         self.cor_borda = cor_borda
         self.cor_preenchimento = cor_preenchimento
+        
+        self.selecionada = False
+        self.id_figura = f"fig_{id(self)}" # Cria o crachá único da figura
+
+    def desenhar_caixa_selecao(self, canvas):
+        if self.selecionada:
+            min_x, max_x = min(self.x1, self.x2), max(self.x1, self.x2)
+            min_y, max_y = min(self.y1, self.y2), max(self.y1, self.y2)
+            canvas.create_rectangle(
+                min_x - 5, min_y - 5, max_x + 5, max_y + 5,
+                outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
+            )
 
     def para_dicionario(self):
         return {
@@ -41,6 +53,18 @@ class Poligono(Figura):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
         self.cor_preenchimento = cor_preenchimento
+        
+        self.selecionada = False
+        self.id_figura = f"fig_{id(self)}"
+
+    def desenhar_caixa_selecao(self, canvas):
+        if self.selecionada and len(self.coordenadas) >= 4:
+            xs = self.coordenadas[0::2]
+            ys = self.coordenadas[1::2]
+            canvas.create_rectangle(
+                min(xs) - 5, min(ys) - 5, max(xs) + 5, max(ys) + 5,
+                outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
+            )
 
     def para_dicionario(self):
         return {
@@ -59,6 +83,18 @@ class MaoLivre(Figura):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
         self.cor_preenchimento = ""
+        
+        self.selecionada = False
+        self.id_figura = f"fig_{id(self)}"
+ 
+    def desenhar_caixa_selecao(self, canvas):
+        if self.selecionada and len(self.coordenadas) >= 4:
+            xs = self.coordenadas[0::2]
+            ys = self.coordenadas[1::2]
+            canvas.create_rectangle(
+                min(xs) - 5, min(ys) - 5, max(xs) + 5, max(ys) + 5,
+                outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
+            )
 
     def para_dicionario(self):
         return {
@@ -98,7 +134,7 @@ class Desenho:
         with open(caminho_arquivo, 'r', encoding='utf-8') as f:
             lista_dicionarios = json.load(f)
         
-        self.limpar() # Limpa as figuras  antes de carregar as novas
+        self.limpar() 
         
         # Dicionário para descobrir qual classe instanciar a partir  do JSON
         mapa_classes = {
@@ -111,6 +147,6 @@ class Desenho:
         
         for dados in lista_dicionarios:
             tipo_figura = dados["tipo"]
-            ClasseCerta = mapa_classes[tipo_figura] 
-            nova_figura = ClasseCerta.de_dicionario(dados) # Manda a própria classe se reconstruir
-            self.adicionar_figuras(nova_figura)
+            ClasseCerta = mapa_classes[tipo_figura]
+            nova_figura = ClasseCerta.de_dicionario(dados)
+            self.adicionar_figuras(nova_figura) # Restaurei as duas linhas que cortaram no final!
