@@ -13,7 +13,7 @@ class Interface:
         tk.Label(self.painel, text="Ferramenta:").grid(row=0, column=0, padx=5, pady=5)
 
         # criando o combobox e iniciando a ferramenta linha para o usuario
-        self.cb_ferramenta = ttk.Combobox(self.painel, values=["Linha", "Retângulo", "Oval", "Polígono", "Mão livre"], state="readonly")
+        self.cb_ferramenta = ttk.Combobox(self.painel, values=["Selecionar", "Linha", "Retângulo", "Oval", "Polígono", "Mão livre"], state="readonly")
         self.cb_ferramenta.set("Linha") 
         self.cb_ferramenta.grid(row=0, column=1, padx=5, pady=5)
         
@@ -34,6 +34,9 @@ class Interface:
         
         self.btn_abrir = ttk.Button(self.painel, text="Abrir", command=self.acao_abrir)
         self.btn_abrir.grid(row=0, column=5, padx=5, pady=5)
+
+        self.btn_selecionar = tk.Button(self.painel, text="Selecionar", command= lambda: self.controlador.mudar_ferramenta("Selecionar"))
+        self.btn_selecionar.grid(row=0, column=6, padx=5, pady=5)
 
         # A tela que o usuario vai utilizar para desenhar
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)

@@ -4,7 +4,7 @@ import sys
 
 # Esse bloco garante que o teste ache o arquivo figuras.py na raiz.
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from figuras import Retangulo, Desenho  # Correção do 'Desenho' 
 

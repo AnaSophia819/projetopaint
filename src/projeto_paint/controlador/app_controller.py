@@ -27,7 +27,7 @@ class EstadoForma2Pontos(EstadoFerramenta):
 
     def finaliza(self, e):
         # Salva a figura definitiva ao soltar o botão do mouse 
-        self.ctrl.visao_interface.canvas.dtag("temporario", "figura_definitiva")
+        self.ctrl.visao_interface.canvas.itemconfig("temporario", tags="figura_definitiva")
         if self.ctrl.figura_atual:
             self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
         self.ctrl.figura_atual = None
@@ -47,7 +47,7 @@ class EstadoMaoLivre(EstadoFerramenta):
 
     def finaliza(self, e):
         # Salva o traço definitivo ao soltar o clique
-        self.ctrl.visao_interface.canvas.dtag("temporario", "figura_definitiva")
+        self.ctrl.visao_interface.canvas.itemconfig("temporario", tags="figura_definitiva")
         if self.ctrl.figura_atual:
             self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
 
@@ -63,11 +63,61 @@ class EstadoPoligono(EstadoFerramenta):
     def encerra(self):
         # Fecha e salva o polígono ao trocar de ferramenta ou encerrar manualmente
         if self.ctrl.pontos_poligono:
-            self.ctrl.visao_interface.canvas.dtag("temporario", "figura_definitiva")
+            self.ctrl.visao_interface.canvas.itemconfig("temporario", tags="figura_definitiva")
             if self.ctrl.figura_atual:
                 self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
             self.ctrl.pontos_poligono = []
             self.ctrl.figura_atual = None
+
+class EstadoSelecionar(EstadoFerramenta):
+    def inicia(self, e):
+        
+        shift_pressionado = (e.state & 1) != 0
+
+        if not shift_pressionado:
+            self.ctrl.figuras_selecionadas.clear()
+
+        self.x_inicio = e.x
+        self.y_inicio = e.y
+
+        self.id_caixa = self.ctrl.visao_interface.canvas.create_rectangle(self.x_inicio, self.y_inicio, self.x_inicio, self.y_inicio, dash=(4, 4), outline="blue", tags="caixa_selecao")
+
+    def atualiza(self, e):
+
+        self.ctrl.visao_interface.canvas.coords(self.id_caixa, self.x_inicio, self.y_inicio, e.x, e.y)
+
+    def finaliza(self, e):
+        canvas = self.ctrl.visao_interface.canvas
+
+        x1 = min(self.x_inicio, e.x)
+        y1 = min(self.y_inicio, e.y)
+        x2 = max(self.x_inicio, e.x)
+        y2 = max(self.y_inicio, e.y)
+
+        canvas.delete(self.id_caixa)
+       
+        if abs(x2 - x1) < 3 and abs(y2 - y1) < 3:
+            itens_encontrados = canvas.find_withtag("current")
+        else:
+            itens_encontrados = canvas.find_overlapping(x1, y1, x2, y2)
+
+        if itens_encontrados:
+            for id_item in itens_encontrados:
+                for figura in self.ctrl.modelo_desenho.figuras:
+                    if hasattr(figura, 'id_tk') and figura.id_tk == id_item:
+                        if figura not in self.ctrl.figuras_selecionadas:
+                            self.ctrl.figuras_selecionadas.append(figura)
+                            print(f"[+] Selecionou a figura: {figura.__class__.__name__}")
+                        break
+        else:
+            shift_pressionado = (e.state & 1) != 0
+             
+            if not shift_pressionado:
+                self.ctrl.figuras_selecionadas.clear()
+                print("Clicou no vazio. Seleção limpa.")
+
+        print(f"Total de selecionadas: {len(self.ctrl.figuras_selecionadas)}")
+
 
 
 class ControladorPaint:
@@ -81,6 +131,7 @@ class ControladorPaint:
         self.coordenadas_atuais = []
         self.pontos_poligono = []
         self.figura_atual = None
+        self.figuras_selecionadas = []
         
         # Define o estado inicial
         self.estado_atual = EstadoForma2Pontos(self, Linha)
@@ -93,6 +144,7 @@ class ControladorPaint:
         self.estado_atual.encerra()
         
         mapa_estados = {
+            "Selecionar": EstadoSelecionar(self),
             "Linha": EstadoForma2Pontos(self, Linha),
             "Retângulo": EstadoForma2Pontos(self, Retangulo),
             "Oval": EstadoForma2Pontos(self, Oval),

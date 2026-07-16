@@ -27,16 +27,30 @@ class Figura:
             dados["cor_borda"], dados["cor_preenchimento"]
         )
 
+# Função "desenhar" para deixar cada imagem com id próprio
 class Linha(Figura):
-    pass
+    def desenhar(self, canvas, tags=""):
+
+        self.id_tk = canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill=self.cor_borda, tags=tags)
 
 class Retangulo(Figura):
-    pass
+    def desenhar(self, canvas, tags=""):
+
+        self.id_tk = canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+
 
 class Oval(Figura):
-    pass
+    def desenhar(self, canvas, tags=""):
+
+        self.id_tk = canvas.create_oval(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+
 
 class Poligono(Figura):
+
+    def desenhar(self, canvas, tags=""):
+
+        self.id_tk = canvas.create_polygon(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+
     def __init__(self, coordenadas, cor_borda, cor_preenchimento):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
