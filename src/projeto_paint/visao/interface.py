@@ -38,6 +38,9 @@ class Interface:
         self.btn_selecionar = tk.Button(self.painel, text="Selecionar", command= lambda: self.controlador.mudar_ferramenta("Selecionar"))
         self.btn_selecionar.grid(row=0, column=6, padx=5, pady=5)
 
+        self.btn_apagar = ttk.Button(self.painel, text="Apagar", command=self.controlador.apagar_selecionados)
+        self.btn_apagar.grid(row=0, column=7, padx=5, pady=5)
+
         # A tela que o usuario vai utilizar para desenhar
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)
         self.canvas.pack()
@@ -45,7 +48,9 @@ class Interface:
         self.canvas.bind('<B1-Motion>', self.controlador.atualiza_desenho)
         self.canvas.bind('<ButtonRelease-1>', self.controlador.finaliza_desenho)
         self.canvas.bind('<ButtonPress-3>', self.controlador.encerra_poligono) 
-
+        # Atalhos de teclado para apagar
+        self.root.bind("<Delete>", self.controlador.apagar_selecionados)
+        self.root.bind("<BackSpace>", self.controlador.apagar_selecionados)
   
     # Abre a janela de cor e manda o resultado pro controlador
     def escolher_borda(self):

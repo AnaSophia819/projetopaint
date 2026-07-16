@@ -19,7 +19,7 @@ class EstadoForma2Pontos(EstadoFerramenta):
         self.ctrl.figura_atual = self.classe(e.x, e.y, e.x, e.y, self.ctrl.cor_borda, self.ctrl.cor_preenchimento)
 
     def atualiza(self, e):
-        # Atualiza o ponto  enquanto o mouse é arrastado
+        # Atualiza o ponto enquanto o mouse é arrastado
         self.ctrl.visao_interface.canvas.delete("temporario")
         if self.ctrl.figura_atual:
             self.ctrl.figura_atual.x2, self.ctrl.figura_atual.y2 = e.x, e.y
@@ -27,9 +27,16 @@ class EstadoForma2Pontos(EstadoFerramenta):
 
     def finaliza(self, e):
         # Salva a figura definitiva ao soltar o botão do mouse 
-        self.ctrl.visao_interface.canvas.itemconfig("temporario", tags="figura_definitiva")
         if self.ctrl.figura_atual:
-            self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
+            # CORREÇÃO: Busca o ID gerado pelo Tkinter usando a tag temporária antes de renomeá-la
+            itens_temporarios = self.ctrl.visao_interface.canvas.find_withtag("temporario")
+            if itens_temporarios:
+                id_gerado = itens_temporarios[-1]
+                self.ctrl.figura_atual.id_tk = id_gerado  # Salva o ID do Canvas na figura!
+                
+                # Altera a tag apenas do item correto
+                self.ctrl.visao_interface.canvas.itemconfig(id_gerado, tags="figura_definitiva")
+                self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
         self.ctrl.figura_atual = None
 
 # Controla o traço contínuo e as direções 
@@ -47,9 +54,15 @@ class EstadoMaoLivre(EstadoFerramenta):
 
     def finaliza(self, e):
         # Salva o traço definitivo ao soltar o clique
-        self.ctrl.visao_interface.canvas.itemconfig("temporario", tags="figura_definitiva")
         if self.ctrl.figura_atual:
-            self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
+            itens_temporarios = self.ctrl.visao_interface.canvas.find_withtag("temporario")
+            if itens_temporarios:
+                id_gerado = itens_temporarios[-1]
+                self.ctrl.figura_atual.id_tk = id_gerado  # Salva o ID do Canvas na figura!
+                
+                self.ctrl.visao_interface.canvas.itemconfig(id_gerado, tags="figura_definitiva")
+                self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
+        self.ctrl.figura_atual = None
 
 class EstadoPoligono(EstadoFerramenta):
     def inicia(self, e):
@@ -63,61 +76,133 @@ class EstadoPoligono(EstadoFerramenta):
     def encerra(self):
         # Fecha e salva o polígono ao trocar de ferramenta ou encerrar manualmente
         if self.ctrl.pontos_poligono:
-            self.ctrl.visao_interface.canvas.itemconfig("temporario", tags="figura_definitiva")
             if self.ctrl.figura_atual:
-                self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
+                itens_temporarios = self.ctrl.visao_interface.canvas.find_withtag("temporario")
+                if itens_temporarios:
+                    id_gerado = itens_temporarios[-1]
+                    self.ctrl.figura_atual.id_tk = id_gerado  # Salva o ID do Canvas na figura!
+                    
+                    self.ctrl.visao_interface.canvas.itemconfig(id_gerado, tags="figura_definitiva")
+                    self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
             self.ctrl.pontos_poligono = []
             self.ctrl.figura_atual = None
 
 class EstadoSelecionar(EstadoFerramenta):
     def inicia(self, e):
-        
-        shift_pressionado = (e.state & 1) != 0
-
-        if not shift_pressionado:
-            self.ctrl.figuras_selecionadas.clear()
-
+        self.modo_mover = False
         self.x_inicio = e.x
         self.y_inicio = e.y
+        self.ultimo_x = e.x
+        self.ultimo_y = e.y
 
-        self.id_caixa = self.ctrl.visao_interface.canvas.create_rectangle(self.x_inicio, self.y_inicio, self.x_inicio, self.y_inicio, dash=(4, 4), outline="blue", tags="caixa_selecao")
-
-    def atualiza(self, e):
-
-        self.ctrl.visao_interface.canvas.coords(self.id_caixa, self.x_inicio, self.y_inicio, e.x, e.y)
-
-    def finaliza(self, e):
-        canvas = self.ctrl.visao_interface.canvas
-
-        x1 = min(self.x_inicio, e.x)
-        y1 = min(self.y_inicio, e.y)
-        x2 = max(self.x_inicio, e.x)
-        y2 = max(self.y_inicio, e.y)
-
-        canvas.delete(self.id_caixa)
-       
-        if abs(x2 - x1) < 3 and abs(y2 - y1) < 3:
-            itens_encontrados = canvas.find_withtag("current")
-        else:
-            itens_encontrados = canvas.find_overlapping(x1, y1, x2, y2)
-
-        if itens_encontrados:
-            for id_item in itens_encontrados:
-                for figura in self.ctrl.modelo_desenho.figuras:
-                    if hasattr(figura, 'id_tk') and figura.id_tk == id_item:
-                        if figura not in self.ctrl.figuras_selecionadas:
-                            self.ctrl.figuras_selecionadas.append(figura)
-                            print(f"[+] Selecionou a figura: {figura.__class__.__name__}")
+        # Cria uma caixinha invisível de 2 pixels ao redor do clique
+        itens_clicados = self.ctrl.visao_interface.canvas.find_overlapping(e.x - 1, e.y - 1, e.x + 1, e.y + 1)
+        
+        figura_clicada = None
+        if itens_clicados:
+            # CORREÇÃO: Percorre de trás para frente (prioriza itens visualmente no topo/frente)
+            for id_clicado in reversed(itens_clicados):
+                for fig in self.ctrl.modelo_desenho.figuras:
+                    if hasattr(fig, 'id_tk') and fig.id_tk == id_clicado:
+                        figura_clicada = fig
                         break
-        else:
+                if figura_clicada:
+                    break
+
+        # 2. Se clicou em uma figura que JÁ ESTÁ na seleção, ativa o movimento
+        if figura_clicada and figura_clicada in self.ctrl.figuras_selecionadas:
+            self.modo_mover = True
+            
+        # 3. Se clicou em uma nova figura que NÃO estava selecionada
+        elif figura_clicada:
             shift_pressionado = (e.state & 1) != 0
-             
             if not shift_pressionado:
                 self.ctrl.figuras_selecionadas.clear()
-                print("Clicou no vazio. Seleção limpa.")
+            
+            self.ctrl.figuras_selecionadas.append(figura_clicada)
+            self.modo_mover = True  # Começa a mover imediatamente
+            
+        # 4. Se clicou no vazio, inicia a caixa de seleção azul
+        else:
+            shift_pressionado = (e.state & 1) != 0
+            if not shift_pressionado:
+                self.ctrl.figuras_selecionadas.clear()
+            
+            self.id_caixa = self.ctrl.visao_interface.canvas.create_rectangle(
+                self.x_inicio, self.y_inicio, self.x_inicio, self.y_inicio,
+                dash=(4, 4), outline="blue", tags="caixa_selecao"
+            )
 
-        print(f"Total de selecionadas: {len(self.ctrl.figuras_selecionadas)}")
+    def atualiza(self, e):
+        if self.modo_mover:
+            # Calcula a distância que o mouse arrastou (delta x, delta y)
+            dx = e.x - self.ultimo_x
+            dy = e.y - self.ultimo_y
+            
+            canvas = self.ctrl.visao_interface.canvas
+            
+            # Move todas as figuras que estão selecionadas
+            for figura in self.ctrl.figuras_selecionadas:
+                if hasattr(figura, 'id_tk') and figura.id_tk is not None:
+                    # Move visualmente no canvas
+                    canvas.move(figura.id_tk, dx, dy)
+                    
+                    # Atualiza as coordenadas internas no Modelo
+                    if hasattr(figura, 'x1'):  # Linha, Retângulo, Oval
+                        figura.x1 += dx
+                        figura.y1 += dy
+                        figura.x2 += dx
+                        figura.y2 += dy
+                    else:
+                        # Para Polígono e Mão Livre que usam listas de coordenadas
+                        for attr_name in ['pontos', 'coordenadas', 'pontos_poligono', 'coordenadas_atuais']:
+                            if hasattr(figura, attr_name):
+                                lista = getattr(figura, attr_name)
+                                for i in range(0, len(lista), 2):
+                                    lista[i] += dx
+                                    lista[i+1] += dy
+                                break
+            
+            # Guarda a posição para o próximo cálculo
+            self.ultimo_x = e.x
+            self.ultimo_y = e.y
+        else:
+            # Se não está movendo, atualiza o retângulo da caixa de seleção
+            self.ctrl.visao_interface.canvas.coords(
+                self.id_caixa, self.x_inicio, self.y_inicio, e.x, e.y
+            )
 
+    def finaliza(self, e):
+        if self.modo_mover:
+            self.modo_mover = False  # Soltou o mouse, para de arrastar
+        else:
+            # Processa as figuras que ficaram dentro da caixa de seleção
+            canvas = self.ctrl.visao_interface.canvas
+            x1 = min(self.x_inicio, e.x)
+            y1 = min(self.y_inicio, e.y)
+            x2 = max(self.x_inicio, e.x)
+            y2 = max(self.y_inicio, e.y)
+
+            canvas.delete(self.id_caixa)
+            
+            if abs(x2 - x1) < 3 and abs(y2 - y1) < 3:
+                # Foi só um clique simples no vazio, limpa a seleção
+                shift_pressionado = (e.state & 1) != 0
+                if not shift_pressionado:
+                    self.ctrl.figuras_selecionadas.clear()
+                    print("Clicou no vazio. Seleção limpa.")
+            else:
+                # Seleção por arrasto de caixa
+                itens_encontrados = canvas.find_overlapping(x1, y1, x2, y2)
+                if itens_encontrados:
+                    for id_item in itens_encontrados:
+                        for figura in self.ctrl.modelo_desenho.figuras:
+                            if hasattr(figura, 'id_tk') and figura.id_tk == id_item:
+                                if figura not in self.ctrl.figuras_selecionadas:
+                                    self.ctrl.figuras_selecionadas.append(figura)
+                                    print(f"[+] Selecionou: {figura.__class__.__name__}")
+                                break
+            print(f"Total de selecionadas: {len(self.ctrl.figuras_selecionadas)}")
 
 
 class ControladorPaint:
@@ -159,7 +244,6 @@ class ControladorPaint:
     def atualizar_cor_preenchimento(self, cor):
         self.cor_preenchimento = cor
 
-  
     # LÓGICA DO MOUSE 
     
     def inicia_desenho(self, event):
@@ -171,6 +255,26 @@ class ControladorPaint:
     def finaliza_desenho(self, event):
         self.estado_atual.finaliza(event)
 
+    def apagar_selecionados(self, event=None):
+        if not self.figuras_selecionadas:
+            return
+        
+        canvas = self.visao_interface.canvas
+        
+        # Percorre a lista de selecionados
+        for figura in self.figuras_selecionadas:
+            # 1. Apaga visualmente do Canvas
+            if hasattr(figura, 'id_tk') and figura.id_tk is not None:
+                canvas.delete(figura.id_tk)
+            
+            # 2. Remove o objeto da memória do Modelo
+            if figura in self.modelo_desenho.figuras:
+                self.modelo_desenho.figuras.remove(figura)
+                
+        # 3. Esvazia a nossa lista de seleção
+        self.figuras_selecionadas.clear()
+        print("Figuras selecionadas foram apagadas com sucesso.")
+        
     def encerra_poligono(self, event=None):
         if hasattr(self.estado_atual, 'encerra'):
             self.estado_atual.encerra()
