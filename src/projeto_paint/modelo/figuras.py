@@ -22,6 +22,13 @@ class Figura:
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
+    #  Mover para Linha, Retangulo e Oval 
+    def mover(self, dx, dy):
+        self.x1 += dx
+        self.y1 += dy
+        self.x2 += dx
+        self.y2 += dy
+
     def para_dicionario(self):
         return {
             "tipo": self.__class__.__name__, # Salva se é Linha, Retangulo ou Oval
@@ -66,6 +73,12 @@ class Poligono(Figura):
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
+    #  Mover para o Poligono 
+    def mover(self, dx, dy):
+        for i in range(0, len(self.coordenadas), 2):
+            self.coordenadas[i] += dx      
+            self.coordenadas[i+1] += dy     
+
     def para_dicionario(self):
         return {
             "tipo": "Poligono",
@@ -95,6 +108,12 @@ class MaoLivre(Figura):
                 min(xs) - 5, min(ys) - 5, max(xs) + 5, max(ys) + 5,
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
+
+    #  Mover para a MaoLivre 
+    def mover(self, dx, dy):
+        for i in range(0, len(self.coordenadas), 2):
+            self.coordenadas[i] += dx       
+            self.coordenadas[i+1] += dy    
 
     def para_dicionario(self):
         return {
@@ -149,4 +168,4 @@ class Desenho:
             tipo_figura = dados["tipo"]
             ClasseCerta = mapa_classes[tipo_figura]
             nova_figura = ClasseCerta.de_dicionario(dados)
-            self.adicionar_figuras(nova_figura) # Restaurei as duas linhas que cortaram no final!
+            self.adicionar_figuras(nova_figura)
