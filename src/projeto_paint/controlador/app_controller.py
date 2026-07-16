@@ -23,12 +23,12 @@ class EstadoForma2Pontos(EstadoFerramenta):
         self.ctrl.visao_interface.canvas.delete("temporario")
         if self.ctrl.figura_atual:
             self.ctrl.figura_atual.x2, self.ctrl.figura_atual.y2 = e.x, e.y
-            self.ctrl.figura_atual.desenhar(self.ctrl.visao_interface.canvas, tags="temporario")
+            # CORREÇÃO MVC: Delega o desenho para a Visão
+            self.ctrl.visao_interface.renderizar_figura(self.ctrl.figura_atual, tag="temporario")
 
     def finaliza(self, e):
         # Salva a figura definitiva ao soltar o botão do mouse 
         if self.ctrl.figura_atual:
-            # CORREÇÃO: Busca o ID gerado pelo Tkinter usando a tag temporária antes de renomeá-la
             itens_temporarios = self.ctrl.visao_interface.canvas.find_withtag("temporario")
             if itens_temporarios:
                 id_gerado = itens_temporarios[-1]
@@ -50,7 +50,8 @@ class EstadoMaoLivre(EstadoFerramenta):
         self.ctrl.visao_interface.canvas.delete("temporario")
         self.ctrl.coordenadas_atuais.extend([e.x, e.y])
         self.ctrl.figura_atual = MaoLivre(self.ctrl.coordenadas_atuais, self.ctrl.cor_borda)
-        self.ctrl.figura_atual.desenhar(self.ctrl.visao_interface.canvas, tags="temporario")
+        # CORREÇÃO MVC: Delega o desenho para a Visão
+        self.ctrl.visao_interface.renderizar_figura(self.ctrl.figura_atual, tag="temporario")
 
     def finaliza(self, e):
         # Salva o traço definitivo ao soltar o clique
@@ -71,7 +72,8 @@ class EstadoPoligono(EstadoFerramenta):
         self.ctrl.visao_interface.canvas.delete("temporario")
         if len(self.ctrl.pontos_poligono) >= 6:
             self.ctrl.figura_atual = Poligono(self.ctrl.pontos_poligono, self.ctrl.cor_borda, self.ctrl.cor_preenchimento)
-            self.ctrl.figura_atual.desenhar(self.ctrl.visao_interface.canvas, tags="temporario")
+            # CORREÇÃO MVC: Delega o desenho para a Visão
+            self.ctrl.visao_interface.renderizar_figura(self.ctrl.figura_atual, tag="temporario")
 
     def encerra(self):
         # Fecha e salva o polígono ao trocar de ferramenta ou encerrar manualmente
@@ -240,9 +242,24 @@ class ControladorPaint:
 
     def atualizar_cor_borda(self, cor):
         self.cor_borda = cor
+        # ADICIONADO: Se existirem figuras selecionadas, muda a cor da borda delas na hora!
+        for figura in self.figuras_selecionadas:
+            figura.cor_borda = cor
+            if hasattr(figura, 'id_tk') and figura.id_tk is not None:
+                if type(figura).__name__ in ["Linha", "MaoLivre"]:
+                    self.visao_interface.canvas.itemconfig(figura.id_tk, fill=cor)
+                else:
+                    self.visao_interface.canvas.itemconfig(figura.id_tk, outline=cor)
 
     def atualizar_cor_preenchimento(self, cor):
         self.cor_preenchimento = cor
+        # ADICIONADO: Se existirem figuras selecionadas, muda a cor do preenchimento delas na hora!
+        for figura in self.figuras_selecionadas:
+            if hasattr(figura, 'cor_preenchimento'):
+                figura.cor_preenchimento = cor
+            if hasattr(figura, 'id_tk') and figura.id_tk is not None:
+                if type(figura).__name__ not in ["Linha", "MaoLivre"]:
+                    self.visao_interface.canvas.itemconfig(figura.id_tk, fill=cor)
 
     # LÓGICA DO MOUSE 
     
@@ -278,3 +295,45 @@ class ControladorPaint:
     def encerra_poligono(self, event=None):
         if hasattr(self.estado_atual, 'encerra'):
             self.estado_atual.encerra()
+
+    # FUNÇÕES DA ENTREGA 5 (Copiar/Colar e Camadas)
+    
+    def copiar_selecionados(self, event=None):
+        self.area_transferencia = []
+        for figura in self.figuras_selecionadas:
+            # Pede para o Modelo criar um clone
+            clone = figura.clonar(offset=15)
+            self.area_transferencia.append(clone)
+        print(f"Copiou {len(self.area_transferencia)} figura(s).")
+
+    def colar_copiados(self, event=None):
+        if not hasattr(self, 'area_transferencia') or not self.area_transferencia:
+            return
+            
+        self.figuras_selecionadas.clear()
+        
+        for figura in self.area_transferencia:
+            # 1. Adiciona o clone no banco de dados (Modelo)
+            self.modelo_desenho.adicionar_figuras(figura)
+            # 2. Desenha o clone na tela (Visão)
+            self.visao_interface.renderizar_figura(figura, tag="figura_definitiva")
+            # 3. Já deixa o clone selecionado
+            self.figuras_selecionadas.append(figura)
+            
+        # Limpa a área de transferência para forçar um novo CTRL+C antes do próximo CTRL+V
+        self.area_transferencia = []
+        print("Figuras coladas com sucesso!")
+
+    def trazer_para_frente(self, event=None):
+        for figura in self.figuras_selecionadas:
+            # Muda a ordem no Modelo
+            self.modelo_desenho.mover_para_frente(figura)
+            # Muda a ordem visual no Tkinter
+            if hasattr(figura, 'id_tk') and figura.id_tk is not None:
+                self.visao_interface.canvas.tag_raise(figura.id_tk)
+
+    def enviar_para_tras(self, event=None):
+        for figura in self.figuras_selecionadas:
+            self.modelo_desenho.mover_para_tras(figura)
+            if hasattr(figura, 'id_tk') and figura.id_tk is not None:
+                self.visao_interface.canvas.tag_lower(figura.id_tk)
