@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, colorchooser, filedialog, messagebox 
-from modelo.figuras import Linha, Retangulo, Oval, Poligono, MaoLivre
+from modelo.figuras import Linha, Retangulo, Oval, Poligono, MaoLivre, FiguraComposta
 
 # responsavel por toda a parte visual do paint cria a tela, botões. e repassa o que o usuario escolheu 
 class Interface:
@@ -31,7 +31,7 @@ class Interface:
         self.btn_abrir = ttk.Button(self.painel, text="Abrir", command=self.acao_abrir)
         self.btn_abrir.grid(row=0, column=5, padx=5, pady=5)
 
-        # --- LINHA 1: Controles de Seleção (Entrega 5) ---
+        # --- LINHA 1: Controles de Seleção e Composite (Entrega 5 e 6) ---
         self.btn_selecionar = tk.Button(self.painel, text="Selecionar", command= lambda: self.controlador.mudar_ferramenta("Selecionar"))
         self.btn_selecionar.grid(row=1, column=1, padx=5, pady=5)
 
@@ -44,6 +44,13 @@ class Interface:
         self.btn_tras = ttk.Button(self.painel, text="Enviar p/ Trás", command=self.controlador.enviar_para_tras)
         self.btn_tras.grid(row=1, column=4, padx=5, pady=5)
 
+        # ADICIONADO: Botões de Agrupar e Desagrupar (Entrega 6)
+        self.btn_agrupar = ttk.Button(self.painel, text="Agrupar", command=self.controlador.agrupar_selecionadas)
+        self.btn_agrupar.grid(row=1, column=5, padx=5, pady=5)
+
+        self.btn_desagrupar = ttk.Button(self.painel, text="Desagrupar", command=self.controlador.desagrupar_selecionadas)
+        self.btn_desagrupar.grid(row=1, column=6, padx=5, pady=5)
+
         # A tela que o usuario vai utilizar para desenhar
         self.canvas = tk.Canvas(self.root, bg='white', width=600, height=600)
         self.canvas.pack()
@@ -54,11 +61,13 @@ class Interface:
         self.canvas.bind('<ButtonRelease-1>', self.controlador.finaliza_desenho)
         self.canvas.bind('<ButtonPress-3>', self.controlador.encerra_poligono) 
         
-        # Binds do Teclado (Apagar e Copiar/Colar)
+        # Binds do Teclado 
         self.root.bind("<Delete>", self.controlador.apagar_selecionados)
         self.root.bind("<BackSpace>", self.controlador.apagar_selecionados)
         self.root.bind("<Control-c>", self.controlador.copiar_selecionados)
         self.root.bind("<Control-v>", self.controlador.colar_copiados)
+        self.root.bind("<Control-g>", self.controlador.agrupar_selecionadas) # Atalho para Agrupar
+        self.root.bind("<Control-u>", self.controlador.desagrupar_selecionadas) # Atalho para Desagrupar
   
     # Abre a janela de cor e manda o resultado pro controlador
     def escolher_borda(self):
@@ -71,6 +80,12 @@ class Interface:
 
     # O MÉTODO QUE FALTAVA: A Visão desenha as figuras usando as ferramentas do Tkinter
     def renderizar_figura(self, figura, tag="temporario"):
+        # ADICIONADO: Se for um grupo, manda desenhar cada filho recursivamente! (Padrão Composite)
+        if isinstance(figura, FiguraComposta):
+            for filho in figura.filhos:
+                self.renderizar_figura(filho, tag)
+            return # Sai da função, pois a caixa em si é invisível, só os filhos aparecem
+
         id_tk = None
         if isinstance(figura, Linha):
             id_tk = self.canvas.create_line(figura.x1, figura.y1, figura.x2, figura.y2, fill=figura.cor_borda, tags=tag)
@@ -112,7 +127,7 @@ class Interface:
                 self.controlador.modelo_desenho.abrir_json(caminho)
                 self.canvas.delete("all") 
                 
-                # CORREÇÃO: Manda a VISÃO desenhar as figuras que foram carregadas
+                # Manda a VISÃO desenhar as figuras que foram carregadas
                 for figura in self.controlador.modelo_desenho.figuras:
                     self.renderizar_figura(figura, tag="figura_definitiva")
                     

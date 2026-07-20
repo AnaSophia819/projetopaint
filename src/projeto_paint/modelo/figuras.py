@@ -1,5 +1,18 @@
-import json # Importa a biblioteca nativa do Python para JSON
+import json 
 import copy
+
+# Função auxiliar para o JSON conseguir recriar qualquer figura (inclusive as compostas)
+def criar_figura_de_dicionario(dados):
+    mapa_classes = {
+        "Linha": Linha,
+        "Retangulo": Retangulo,
+        "Oval": Oval,
+        "Poligono": Poligono,
+        "MaoLivre": MaoLivre,
+        "FiguraComposta": FiguraComposta
+    }
+    ClasseCerta = mapa_classes[dados["tipo"]]
+    return ClasseCerta.de_dicionario(dados)
 
 class Figura:
     def __init__(self, x1, y1, x2, y2, cor_borda, cor_preenchimento):
@@ -11,18 +24,15 @@ class Figura:
         self.cor_preenchimento = cor_preenchimento
         
         self.selecionada = False
-        self.id_figura = f"fig_{id(self)}" # Cria o crachá único da figura
+        self.id_figura = f"fig_{id(self)}"
 
-    # Mover para Linha, Retangulo e Oval 
     def mover(self, dx, dy):
         self.x1 += dx
         self.y1 += dy
         self.x2 += dx
         self.y2 += dy
 
-    # CLONAR (Para o CTRL-C / CTRL-V)
     def clonar(self, offset=15):
-        # self.__class__ garante que ele vai criar a classe certa (Linha, Retangulo ou Oval)
         return self.__class__(
             self.x1 + offset, self.y1 + offset, 
             self.x2 + offset, self.y2 + offset, 
@@ -55,17 +65,14 @@ class Retangulo(Figura):
 class Oval(Figura):
     pass
 
-
 class Poligono(Figura):
     def __init__(self, coordenadas, cor_borda, cor_preenchimento):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
         self.cor_preenchimento = cor_preenchimento
-        
         self.selecionada = False
         self.id_figura = f"fig_{id(self)}"
 
-    # Mover para o Poligono 
     def mover(self, dx, dy):
         for i in range(0, len(self.coordenadas), 2):
             self.coordenadas[i] += dx      
@@ -87,17 +94,14 @@ class Poligono(Figura):
     def de_dicionario(cls, dados):
         return cls(dados["coordenadas"], dados["cor_borda"], dados["cor_preenchimento"])
 
-
 class MaoLivre(Figura):
     def __init__(self, coordenadas, cor_borda):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
         self.cor_preenchimento = ""
-        
         self.selecionada = False
         self.id_figura = f"fig_{id(self)}"
 
-    # Mover para a MaoLivre 
     def mover(self, dx, dy):
         for i in range(0, len(self.coordenadas), 2):
             self.coordenadas[i] += dx       
@@ -119,10 +123,60 @@ class MaoLivre(Figura):
         return cls(dados["coordenadas"], dados["cor_borda"])
 
 
-# GERENCIADOR DO ARQUIVO
+# --- NOVO: PADRÃO COMPOSITE (ENTREGA 6) ---
+class FiguraComposta:
+    def __init__(self, filhos):
+        self.filhos = filhos # Lista que guarda as figuras agrupadas
+        self.selecionada = False
+        self.id_figura = f"fig_{id(self)}"
+
+    # Quando mandam o grupo mover, ele manda os filhos se moverem
+    def mover(self, dx, dy):
+        for filho in self.filhos:
+            filho.mover(dx, dy)
+
+    # Quando mandam o grupo clonar, ele clona todos os filhos
+    def clonar(self, offset=15):
+        novos_filhos = [filho.clonar(offset) for filho in self.filhos]
+        return FiguraComposta(novos_filhos)
+
+    # Propriedades "Mágicas": Se o Controlador tentar mudar a cor do grupo,
+    # essa propriedade intercepta e muda a cor de todos os filhos lá dentro.
+    @property
+    def cor_borda(self):
+        return self.filhos[0].cor_borda if self.filhos else ""
+
+    @cor_borda.setter
+    def cor_borda(self, cor):
+        for filho in self.filhos:
+            filho.cor_borda = cor
+
+    @property
+    def cor_preenchimento(self):
+        return self.filhos[0].cor_preenchimento if self.filhos and hasattr(self.filhos[0], 'cor_preenchimento') else ""
+
+    @cor_preenchimento.setter
+    def cor_preenchimento(self, cor):
+        for filho in self.filhos:
+            if hasattr(filho, 'cor_preenchimento'):
+                filho.cor_preenchimento = cor
+
+    def para_dicionario(self):
+        return {
+            "tipo": "FiguraComposta",
+            "filhos": [filho.para_dicionario() for filho in self.filhos]
+        }
+
+    @classmethod
+    def de_dicionario(cls, dados):
+        filhos_instanciados = [criar_figura_de_dicionario(d) for d in dados["filhos"]]
+        return cls(filhos_instanciados)
+
+
+# --- GERENCIADOR DO ARQUIVO ---
 class Desenho:
     def __init__(self):
-        self.figuras = [] # Vai guardar os objetos 
+        self.figuras = [] 
 
     def adicionar_figuras(self, figura):
         self.figuras.append(figura)
@@ -130,18 +184,16 @@ class Desenho:
     def limpar(self):
         self.figuras.clear()
 
-    # MÉTODOS DE ORDEM DE CAMADAS
     def mover_para_frente(self, figura):
         if figura in self.figuras:
             self.figuras.remove(figura)
-            self.figuras.append(figura) # Coloca no final da lista (desenha por último = fica na frente)
+            self.figuras.append(figura) 
 
     def mover_para_tras(self, figura):
         if figura in self.figuras:
             self.figuras.remove(figura)
-            self.figuras.insert(0, figura) # Coloca no índice 0 (desenha primeiro = fica atrás)
+            self.figuras.insert(0, figura) 
 
-    # MÉTODOS DE SALVAR E ABRIR
     def salvar_json(self, caminho_arquivo):
         lista_dicionarios = [fig.para_dicionario() for fig in self.figuras]
         with open(caminho_arquivo, 'w', encoding='utf-8') as f:
@@ -152,17 +204,6 @@ class Desenho:
             lista_dicionarios = json.load(f)
         
         self.limpar() 
-        
-        mapa_classes = {
-            "Linha": Linha,
-            "Retangulo": Retangulo,
-            "Oval": Oval,
-            "Poligono": Poligono,
-            "MaoLivre": MaoLivre
-        }
-        
         for dados in lista_dicionarios:
-            tipo_figura = dados["tipo"]
-            ClasseCerta = mapa_classes[tipo_figura]
-            nova_figura = ClasseCerta.de_dicionario(dados)
+            nova_figura = criar_figura_de_dicionario(dados)
             self.adicionar_figuras(nova_figura)
