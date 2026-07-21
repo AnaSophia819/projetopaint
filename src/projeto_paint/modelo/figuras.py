@@ -1,4 +1,4 @@
-import json
+import json # Importa a biblioteca nativa do Python para JSON
 
 class Figura:
     def __init__(self, x1, y1, x2, y2, cor_borda, cor_preenchimento):
@@ -10,8 +10,7 @@ class Figura:
         self.cor_preenchimento = cor_preenchimento
         
         self.selecionada = False
-        self.id_figura = f"fig_{id(self)}"
-        self.id_tk = None
+        self.id_figura = f"fig_{id(self)}" # Cria o crachá único da figura
 
     def desenhar_caixa_selecao(self, canvas):
         if self.selecionada:
@@ -22,15 +21,23 @@ class Figura:
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
+    #  Mover para Linha, Retangulo e Oval 
     def mover(self, dx, dy):
         self.x1 += dx
         self.y1 += dy
         self.x2 += dx
         self.y2 += dy
 
+    def clonar(self, offset=15):
+        return self.__class__(
+            self.x1 + offset, self.y1 + offset, 
+            self.x2 + offset, self.y2 + offset, 
+            self.cor_borda, self.cor_preenchimento
+        )
+
     def para_dicionario(self):
         return {
-            "tipo": self.__class__.__name__,
+            "tipo": self.__class__.__name__, # Salva se é Linha, Retangulo ou Oval
             "x1": self.x1, "y1": self.y1,
             "x2": self.x2, "y2": self.y2,
             "cor_borda": self.cor_borda,
@@ -45,29 +52,23 @@ class Figura:
             dados["cor_borda"], dados["cor_preenchimento"]
         )
 
-class Retangulo(Figura):
-    def desenhar(self, canvas, tags=""):
-        self.id_tk = canvas.create_rectangle(
-            self.x1, self.y1, self.x2, self.y2,
-            outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags
-        )
-        return self.id_tk 
-
+# Função "desenhar" para deixar cada imagem com id próprio
 class Linha(Figura):
     def desenhar(self, canvas, tags=""):
-        self.id_tk = canvas.create_line(
-            self.x1, self.y1, self.x2, self.y2,
-            fill=self.cor_borda, tags=tags
-        )
-        return self.id_tk  
+
+        self.id_tk = canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill=self.cor_borda, tags=tags)
+
+class Retangulo(Figura):
+    def desenhar(self, canvas, tags=""):
+
+        self.id_tk = canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+
 
 class Oval(Figura):
     def desenhar(self, canvas, tags=""):
-        self.id_tk = canvas.create_oval(
-            self.x1, self.y1, self.x2, self.y2,
-            outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags
-        )
-        return self.id_tk  
+
+        self.id_tk = canvas.create_oval(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
+
 
 class Poligono(Figura):
     def __init__(self, coordenadas, cor_borda, cor_preenchimento):
@@ -94,10 +95,15 @@ class Poligono(Figura):
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
+    #  Mover para o Poligono 
     def mover(self, dx, dy):
         for i in range(0, len(self.coordenadas), 2):
             self.coordenadas[i] += dx      
             self.coordenadas[i+1] += dy    
+
+    def clonar(self, offset=15):
+        novas_coordenadas = [c + offset for c in self.coordenadas]
+        return Poligono(novas_coordenadas, self.cor_borda, self.cor_preenchimento)
 
     def para_dicionario(self):
         return {
@@ -118,16 +124,7 @@ class MaoLivre(Figura):
         self.cor_preenchimento = ""
         self.selecionada = False
         self.id_figura = f"fig_{id(self)}"
-        self.id_tk = None
-
-    def desenhar(self, canvas, tags=""):
-        if len(self.coordenadas) >= 4:
-            self.id_tk = canvas.create_line(
-                *self.coordenadas, fill=self.cor_borda, smooth=True, tags=tags
-            )
-            return self.id_tk
-        return None
-
+ 
     def desenhar_caixa_selecao(self, canvas):
         if self.selecionada and len(self.coordenadas) >= 4:
             xs = self.coordenadas[0::2]
@@ -137,10 +134,15 @@ class MaoLivre(Figura):
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
+    #  Mover para a MaoLivre 
     def mover(self, dx, dy):
         for i in range(0, len(self.coordenadas), 2):
             self.coordenadas[i] += dx       
             self.coordenadas[i+1] += dy    
+
+    def clonar(self, offset=15):
+        novas_coordenadas = [c + offset for c in self.coordenadas]
+        return MaoLivre(novas_coordenadas, self.cor_borda)
 
     def para_dicionario(self):
         return {
@@ -153,30 +155,8 @@ class MaoLivre(Figura):
     def de_dicionario(cls, dados):
         return cls(dados["coordenadas"], dados["cor_borda"])
 
-class FiguraComposta:
-    def __init__(self):
-        self.figuras_internas = []
-        self.id_tk = None
 
-    def adicionar(self, figura):
-        self.figuras_internas.append(figura)
-    
-    def desenhar(self, canvas, tags=""):
-        primeiro_id = None
-        for fig in self.figuras_internas:
-            id_gerado = fig.desenhar(canvas, tags)
-            if primeiro_id is None:
-                primeiro_id = id_gerado
-        return primeiro_id
-    
-    def mover(self, dx, dy):
-        for fig in self.figuras_internas:
-            fig.mover(dx, dy)
-
-    def mudar_cor(self, nova_cor):
-        for fig in self.figuras_internas:
-            if hasattr(fig, 'cor_borda'):
-                fig.cor_borda = nova_cor
+#  GERENCIADOR DO ARQUIVO
 
 class Desenho:
     def __init__(self):
@@ -188,6 +168,7 @@ class Desenho:
     def limpar(self):
         self.figuras.clear()
 
+    # MÉTODOS DE SALVAR E ABRIR
     def salvar_json(self, caminho_arquivo):
         lista_dicionarios = [fig.para_dicionario() for fig in self.figuras]
         with open(caminho_arquivo, 'w', encoding='utf-8') as f:
@@ -199,6 +180,7 @@ class Desenho:
         
         self.limpar() 
         
+        # Dicionário para descobrir qual classe instanciar a partir  do JSON
         mapa_classes = {
             "Linha": Linha,
             "Retangulo": Retangulo,
@@ -208,7 +190,5 @@ class Desenho:
         }
         
         for dados in lista_dicionarios:
-            tipo_figura = dados["tipo"]
-            ClasseCerta = mapa_classes[tipo_figura]
-            nova_figura = ClasseCerta.de_dicionario(dados)
+            nova_figura = criar_figura_de_dicionario(dados)
             self.adicionar_figuras(nova_figura)
