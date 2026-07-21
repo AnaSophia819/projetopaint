@@ -1,4 +1,70 @@
 from modelo.figuras import Desenho, Linha, Retangulo, Oval, Poligono, MaoLivre
+from abc import ABC, abstractmethod
+
+# Criando a classe base para todos os comandos
+
+class Comando(ABC):
+    @abstractmethod
+    def executar(self):
+        pass
+
+    @abstractmethod
+    def desfazer(self):
+        pass
+
+# Comando para adicionar figuras
+class Adicionar(Comando):
+    def __init__(self, modelo_desenho, figura, controlador):
+        self.modelo = modelo_desenho
+        self.figura = figura
+        self.controlador = controlador
+
+    def executar(self):
+        self.modelo.adicionar_figuras(self.figura)
+        self.controlador.redesenhar_canvas()
+
+    def desfazer(self):
+        if self.figura in self.modelo.figuras:
+            self.modelo.figuras.remove(self.figura)
+        self.controlador.redesenhar_canvas()
+
+# Comando para apagar figuras
+class Apagar(Comando):
+    def __init__(self, modelo_desenho, figuras_apagar, controlador):
+        self.modelo = modelo_desenho
+        self.figuras_apagar = list(figuras_apagar)
+        self.controlador = controlador
+
+    def executar(self):
+        for fig in self.figuras_apagar:
+           if fig in self.modelo.figuras:
+                self.modelo.figuras.remove(fig)
+        self.controlador.redesenhar_canvas()
+
+    def desfazer(self):
+        for fig in self.figuras_apagar:
+            self.modelo.adicionar_figuras(fig)
+        self.controlador.redesenhar_canvas()
+
+# Comando para mover figuras
+class Mover(Comando):
+
+    def __init__(self, figuras, dx, dy, controlador):
+        self.figuras = list(figuras)
+        self.dx = dx
+        self.dy = dy
+        self.controlador = controlador
+
+    def executar(self):
+        for fig in self.figuras:
+            fig.mover(self.dx, self.dy)
+        self.controlador.redesenhar_canvas()
+
+    def desfazer(self):
+        # Para desfazer a movimentação, movemos no sentido inverso (-dx, -dy)
+        for fig in self.figuras:
+            fig.mover(-self.dx, -self.dy)
+        self.controlador.redesenhar_canvas()
 
 class EstadoFerramenta:
     def __init__(self, ctrl): self.ctrl = ctrl
@@ -36,8 +102,14 @@ class EstadoForma2Pontos(EstadoFerramenta):
                 
                 # Altera a tag apenas do item correto
                 self.ctrl.visao_interface.canvas.itemconfig(id_gerado, tags="figura_definitiva")
-                self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
-        self.ctrl.figura_atual = None
+                
+                # 1. Guarda a referência da figura criada
+                fig_para_adicionar = self.ctrl.figura_atual
+                self.ctrl.figura_atual = None
+                
+                # 2. Cria o comando passando a figura
+                cmd = Adicionar(self.ctrl.modelo_desenho, fig_para_adicionar, self.ctrl)
+                self.ctrl.executar_comando(cmd)
 
 # Controla o traço contínuo e as direções 
 class EstadoMaoLivre(EstadoFerramenta):
@@ -61,8 +133,11 @@ class EstadoMaoLivre(EstadoFerramenta):
                 self.ctrl.figura_atual.id_tk = id_gerado  # Salva o ID do Canvas na figura!
                 
                 self.ctrl.visao_interface.canvas.itemconfig(id_gerado, tags="figura_definitiva")
-                self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
-        self.ctrl.figura_atual = None
+                fig_para_adicionar = self.ctrl.figura_atual
+                self.ctrl.figura_atual = None
+                
+                cmd = Adicionar(self.ctrl.modelo_desenho, fig_para_adicionar, self.ctrl)
+                self.ctrl.executar_comando(cmd)
 
 class EstadoPoligono(EstadoFerramenta):
     def inicia(self, e):
@@ -74,26 +149,34 @@ class EstadoPoligono(EstadoFerramenta):
             self.ctrl.figura_atual.desenhar(self.ctrl.visao_interface.canvas, tags="temporario")
 
     def encerra(self):
-        # Fecha e salva o polígono ao trocar de ferramenta ou encerrar manualmente
         if self.ctrl.pontos_poligono:
             if self.ctrl.figura_atual:
                 itens_temporarios = self.ctrl.visao_interface.canvas.find_withtag("temporario")
                 if itens_temporarios:
                     id_gerado = itens_temporarios[-1]
-                    self.ctrl.figura_atual.id_tk = id_gerado  # Salva o ID do Canvas na figura!
-                    
+                    self.ctrl.figura_atual.id_tk = id_gerado
                     self.ctrl.visao_interface.canvas.itemconfig(id_gerado, tags="figura_definitiva")
-                    self.ctrl.modelo_desenho.adicionar_figuras(self.ctrl.figura_atual)
+                    
+                    # Gera o comando para o polígono
+                    fig_para_adicionar = self.ctrl.figura_atual
+                    cmd = Adicionar(self.ctrl.modelo_desenho, fig_para_adicionar, self.ctrl)
+                    self.ctrl.executar_comando(cmd)
+
             self.ctrl.pontos_poligono = []
             self.ctrl.figura_atual = None
 
 class EstadoSelecionar(EstadoFerramenta):
+    def __init__(self, ctrl):
+        super().__init__(ctrl)
+        self.id_caixa = None
     def inicia(self, e):
         self.modo_mover = False
         self.x_inicio = e.x
         self.y_inicio = e.y
         self.ultimo_x = e.x
         self.ultimo_y = e.y
+        self.dx_total = 0
+        self.dy_total = 0
 
         # Cria uma caixinha invisível de 2 pixels ao redor do clique
         itens_clicados = self.ctrl.visao_interface.canvas.find_overlapping(e.x - 1, e.y - 1, e.x + 1, e.y + 1)
@@ -132,12 +215,18 @@ class EstadoSelecionar(EstadoFerramenta):
                 self.x_inicio, self.y_inicio, self.x_inicio, self.y_inicio,
                 dash=(4, 4), outline="blue", tags="caixa_selecao"
             )
+        
+        self.ctrl.redesenhar_canvas()
 
     def atualiza(self, e):
         if self.modo_mover:
             # Calcula a distância que o mouse arrastou (delta x, delta y)
             dx = e.x - self.ultimo_x
             dy = e.y - self.ultimo_y
+            
+            # Acumula o movimento total
+            self.dx_total += dx
+            self.dy_total += dy
             
             canvas = self.ctrl.visao_interface.canvas
             
@@ -146,22 +235,6 @@ class EstadoSelecionar(EstadoFerramenta):
                 if hasattr(figura, 'id_tk') and figura.id_tk is not None:
                     # Move visualmente no canvas
                     canvas.move(figura.id_tk, dx, dy)
-                    
-                    # Atualiza as coordenadas internas no Modelo
-                    if hasattr(figura, 'x1'):  # Linha, Retângulo, Oval
-                        figura.x1 += dx
-                        figura.y1 += dy
-                        figura.x2 += dx
-                        figura.y2 += dy
-                    else:
-                        # Para Polígono e Mão Livre que usam listas de coordenadas
-                        for attr_name in ['pontos', 'coordenadas', 'pontos_poligono', 'coordenadas_atuais']:
-                            if hasattr(figura, attr_name):
-                                lista = getattr(figura, attr_name)
-                                for i in range(0, len(lista), 2):
-                                    lista[i] += dx
-                                    lista[i+1] += dy
-                                break
             
             # Guarda a posição para o próximo cálculo
             self.ultimo_x = e.x
@@ -175,6 +248,12 @@ class EstadoSelecionar(EstadoFerramenta):
     def finaliza(self, e):
         if self.modo_mover:
             self.modo_mover = False  # Soltou o mouse, para de arrastar
+
+            # Soltou o mouse: dispara O COMANDO de mover com o deslocamento TOTAL
+            if self.dx_total != 0 or self.dy_total != 0:
+                cmd = Mover(self.ctrl.figuras_selecionadas, self.dx_total, self.dy_total, self.ctrl)
+                self.ctrl.executar_comando(cmd)
+
         else:
             # Processa as figuras que ficaram dentro da caixa de seleção
             canvas = self.ctrl.visao_interface.canvas
@@ -204,6 +283,7 @@ class EstadoSelecionar(EstadoFerramenta):
                                 break
             print(f"Total de selecionadas: {len(self.ctrl.figuras_selecionadas)}")
 
+            self.ctrl.redesenhar_canvas()
 
 class ControladorPaint:
     def __init__(self):
@@ -217,16 +297,49 @@ class ControladorPaint:
         self.pontos_poligono = []
         self.figura_atual = None
         self.figuras_selecionadas = []
+        self.pilha_undo = []
+        self.pilha_redo = []
         
         # Define o estado inicial
         self.estado_atual = EstadoForma2Pontos(self, Linha)
+
+    def executar_comando(self, comando):
+        comando.executar()
+        self.pilha_undo.append(comando)
+        self.pilha_redo.clear()
+
+    def undo(self, event=None):
+        if self.pilha_undo:
+            cmd = self.pilha_undo.pop()
+            cmd.desfazer()
+            self.pilha_redo.append(cmd)
+
+    def redo(self, event=None):
+        if self.pilha_redo:
+            cmd = self.pilha_redo.pop()
+            cmd.executar()
+            self.pilha_undo.append(cmd)
+
+    def redesenhar_canvas(self):
+        if not self.visao_interface:  
+            return
+        
+        canvas = self.visao_interface.canvas
+        canvas.delete("all")
+        
+        for fig in self.modelo_desenho.figuras:
+            fig.id_tk = fig.desenhar(canvas, tags="figura_definitiva")
+        
+            if hasattr(fig, 'desenhar_caixa_selecao') and fig in self.figuras_selecionadas:
+                fig.desenhar_caixa_selecao(canvas)
 
     def definir_visao(self, visao):
         self.visao_interface = visao
 
     def mudar_ferramenta(self, ferramenta):
         # Fecha polígonos abertos antes de trocar de ferramenta
-        self.estado_atual.encerra()
+        if hasattr(self.estado_atual, 'encerra'):
+            self.estado_atual.encerra()
         
         mapa_estados = {
             "Selecionar": EstadoSelecionar(self),
@@ -237,6 +350,9 @@ class ControladorPaint:
             "Polígono": EstadoPoligono(self)
         }
         self.estado_atual = mapa_estados[ferramenta]
+
+        if self.visao_interface and hasattr(self.visao_interface, 'cb_ferramenta'):
+            self.visao_interface.cb_ferramenta.set(ferramenta)
 
     def atualizar_cor_borda(self, cor):
         self.cor_borda = cor
@@ -258,22 +374,13 @@ class ControladorPaint:
     def apagar_selecionados(self, event=None):
         if not self.figuras_selecionadas:
             return
+    
+        # Executa a deleção através do Padrão Command
+        cmd = Apagar(self.modelo_desenho, self.figuras_selecionadas, self)
+        self.executar_comando(cmd)
         
-        canvas = self.visao_interface.canvas
-        
-        # Percorre a lista de selecionados
-        for figura in self.figuras_selecionadas:
-            # 1. Apaga visualmente do Canvas
-            if hasattr(figura, 'id_tk') and figura.id_tk is not None:
-                canvas.delete(figura.id_tk)
-            
-            # 2. Remove o objeto da memória do Modelo
-            if figura in self.modelo_desenho.figuras:
-                self.modelo_desenho.figuras.remove(figura)
-                
-        # 3. Esvazia a nossa lista de seleção
+        # Limpa a seleção atual
         self.figuras_selecionadas.clear()
-        print("Figuras selecionadas foram apagadas com sucesso.")
         
     def encerra_poligono(self, event=None):
         if hasattr(self.estado_atual, 'encerra'):

@@ -1,7 +1,6 @@
-import json # Importa a biblioteca nativa do Python para JSON
+import json
 
 class Figura:
-    # Aqui é  para   iniciar automaticamente
     def __init__(self, x1, y1, x2, y2, cor_borda, cor_preenchimento):
         self.x1 = x1    
         self.y1 = y1
@@ -11,7 +10,8 @@ class Figura:
         self.cor_preenchimento = cor_preenchimento
         
         self.selecionada = False
-        self.id_figura = f"fig_{id(self)}" # Cria o crachá único da figura
+        self.id_figura = f"fig_{id(self)}"
+        self.id_tk = None
 
     def desenhar_caixa_selecao(self, canvas):
         if self.selecionada:
@@ -22,7 +22,6 @@ class Figura:
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
-    #  Mover para Linha, Retangulo e Oval 
     def mover(self, dx, dy):
         self.x1 += dx
         self.y1 += dy
@@ -31,7 +30,7 @@ class Figura:
 
     def para_dicionario(self):
         return {
-            "tipo": self.__class__.__name__, # Salva se é Linha, Retangulo ou Oval
+            "tipo": self.__class__.__name__,
             "x1": self.x1, "y1": self.y1,
             "x2": self.x2, "y2": self.y2,
             "cor_borda": self.cor_borda,
@@ -46,37 +45,45 @@ class Figura:
             dados["cor_borda"], dados["cor_preenchimento"]
         )
 
-# Função "desenhar" para deixar cada imagem com id próprio
-class Linha(Figura):
-    def desenhar(self, canvas, tags=""):
-
-        self.id_tk = canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill=self.cor_borda, tags=tags)
-
 class Retangulo(Figura):
     def desenhar(self, canvas, tags=""):
+        self.id_tk = canvas.create_rectangle(
+            self.x1, self.y1, self.x2, self.y2,
+            outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags
+        )
+        return self.id_tk 
 
-        self.id_tk = canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
-
+class Linha(Figura):
+    def desenhar(self, canvas, tags=""):
+        self.id_tk = canvas.create_line(
+            self.x1, self.y1, self.x2, self.y2,
+            fill=self.cor_borda, tags=tags
+        )
+        return self.id_tk  
 
 class Oval(Figura):
     def desenhar(self, canvas, tags=""):
-
-        self.id_tk = canvas.create_oval(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
-
+        self.id_tk = canvas.create_oval(
+            self.x1, self.y1, self.x2, self.y2,
+            outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags
+        )
+        return self.id_tk  
 
 class Poligono(Figura):
-
-    def desenhar(self, canvas, tags=""):
-
-        self.id_tk = canvas.create_polygon(self.x1, self.y1, self.x2, self.y2, outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags)
-
     def __init__(self, coordenadas, cor_borda, cor_preenchimento):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
         self.cor_preenchimento = cor_preenchimento
-        
         self.selecionada = False
         self.id_figura = f"fig_{id(self)}"
+        self.id_tk = None
+
+    def desenhar(self, canvas, tags=""):
+        self.id_tk = canvas.create_polygon(
+            *self.coordenadas, 
+            outline=self.cor_borda, fill=self.cor_preenchimento, tags=tags
+        )
+        return self.id_tk
 
     def desenhar_caixa_selecao(self, canvas):
         if self.selecionada and len(self.coordenadas) >= 4:
@@ -87,11 +94,10 @@ class Poligono(Figura):
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
-    #  Mover para o Poligono 
     def mover(self, dx, dy):
         for i in range(0, len(self.coordenadas), 2):
             self.coordenadas[i] += dx      
-            self.coordenadas[i+1] += dy     
+            self.coordenadas[i+1] += dy    
 
     def para_dicionario(self):
         return {
@@ -110,10 +116,18 @@ class MaoLivre(Figura):
         self.coordenadas = coordenadas
         self.cor_borda = cor_borda
         self.cor_preenchimento = ""
-        
         self.selecionada = False
         self.id_figura = f"fig_{id(self)}"
- 
+        self.id_tk = None
+
+    def desenhar(self, canvas, tags=""):
+        if len(self.coordenadas) >= 4:
+            self.id_tk = canvas.create_line(
+                *self.coordenadas, fill=self.cor_borda, smooth=True, tags=tags
+            )
+            return self.id_tk
+        return None
+
     def desenhar_caixa_selecao(self, canvas):
         if self.selecionada and len(self.coordenadas) >= 4:
             xs = self.coordenadas[0::2]
@@ -123,7 +137,6 @@ class MaoLivre(Figura):
                 outline="red", dash=(4, 4), width=2, tags="caixa_selecao"
             )
 
-    #  Mover para a MaoLivre 
     def mover(self, dx, dy):
         for i in range(0, len(self.coordenadas), 2):
             self.coordenadas[i] += dx       
@@ -140,12 +153,34 @@ class MaoLivre(Figura):
     def de_dicionario(cls, dados):
         return cls(dados["coordenadas"], dados["cor_borda"])
 
+class FiguraComposta:
+    def __init__(self):
+        self.figuras_internas = []
+        self.id_tk = None
 
-#  GERENCIADOR DO ARQUIVO
+    def adicionar(self, figura):
+        self.figuras_internas.append(figura)
+    
+    def desenhar(self, canvas, tags=""):
+        primeiro_id = None
+        for fig in self.figuras_internas:
+            id_gerado = fig.desenhar(canvas, tags)
+            if primeiro_id is None:
+                primeiro_id = id_gerado
+        return primeiro_id
+    
+    def mover(self, dx, dy):
+        for fig in self.figuras_internas:
+            fig.mover(dx, dy)
+
+    def mudar_cor(self, nova_cor):
+        for fig in self.figuras_internas:
+            if hasattr(fig, 'cor_borda'):
+                fig.cor_borda = nova_cor
 
 class Desenho:
     def __init__(self):
-        self.figuras = [] # Vai guardar os objetos 
+        self.figuras = [] 
 
     def adicionar_figuras(self, figura):
         self.figuras.append(figura)
@@ -153,23 +188,17 @@ class Desenho:
     def limpar(self):
         self.figuras.clear()
 
-    # MÉTODOS DE SALVAR E ABRIR
     def salvar_json(self, caminho_arquivo):
-        # Transforma todas as figuras da lista em dicionários
         lista_dicionarios = [fig.para_dicionario() for fig in self.figuras]
-        
-        # coloca o arquivo no disco
         with open(caminho_arquivo, 'w', encoding='utf-8') as f:
             json.dump(lista_dicionarios, f, indent=4)
 
     def abrir_json(self, caminho_arquivo):
-        # Lê o arquivo do disco
         with open(caminho_arquivo, 'r', encoding='utf-8') as f:
             lista_dicionarios = json.load(f)
         
         self.limpar() 
         
-        # Dicionário para descobrir qual classe instanciar a partir  do JSON
         mapa_classes = {
             "Linha": Linha,
             "Retangulo": Retangulo,
